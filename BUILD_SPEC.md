@@ -1,0 +1,659 @@
+# W3Codify — Build Specification
+
+> **Hand this file to Claude Code.** It is the single source of truth for building
+> the W3Codify platform. Build in the order given in §16. Treat every "MUST" as a
+> hard requirement and every "SHOULD" as a strong default you may improve on.
+
+---
+
+## 1. Product Vision
+
+**W3Codify** is an **online AI‑powered coding school**. Students enroll in
+live + self‑paced cohorts, watch lessons, build projects, and learn with an
+**always‑on AI tutor** that explains code, reviews submissions, and answers doubts
+24/7. The marketing surface (home, courses, single‑course) must feel like a
+**$10M, category‑leading product** — cinematic, fast, and conversion‑obsessed.
+The app surface (profile, classroom, AI tutor) must feel like a focused, premium
+learning workspace.
+
+**One‑line positioning:** *"Learn. Build. Get Placed — with an AI mentor in your corner."*
+
+**Primary conversion goal:** get a visitor to **enroll in the free course** (low‑friction
+phone signup) and then upsell into paid cohorts.
+
+**Audience:** India‑first (₹ pricing, phone‑first auth, WhatsApp consent), students &
+early‑career devs aged 18–28. Mobile traffic is majority — **mobile‑first, always.**
+
+---
+
+## 2. Non‑Negotiables (the "$10M feel")
+
+- **Performance:** Lighthouse ≥ 95 (Perf/SEO/Best‑Practices/A11y) on the home page,
+  mobile profile. LCP < 2.0s on 4G, CLS < 0.05, TBT < 200ms.
+- **Motion with taste:** scroll‑reveal, kinetic hero, magnetic CTAs, smooth scroll —
+  but never janky and always respecting `prefers-reduced-motion`.
+- **Accessibility:** WCAG 2.1 AA. Keyboard‑navigable, focus‑visible, semantic HTML,
+  proper contrast on the dark theme.
+- **SEO:** SSR/SSG marketing pages, OpenGraph + Twitter cards, JSON‑LD (`Course`,
+  `Organization`, `BreadcrumbList`), sitemap, robots.
+- **Responsive:** flawless at 360px, 768px, 1024px, 1440px, 1920px.
+- **Polish:** no layout shift, skeleton loaders, optimistic UI, empty/error/loading
+  states for every async surface.
+
+---
+
+## 3. Tech Stack (use exactly this unless you can justify better)
+
+### Frontend
+| Concern | Choice | Notes |
+|---|---|---|
+| Framework | **Next.js 15** (App Router, RSC, TypeScript, Turbopack) | SSR/SSG for SEO, route handlers for API |
+| Styling | **Tailwind CSS v4** + CSS variables design tokens | Token‑driven theme (§5) |
+| Components | **shadcn/ui** (Radix primitives) | Accessible, unstyled base we theme |
+| Animation | **Framer Motion** + **Lenis** (smooth scroll) | GSAP allowed for hero only |
+| 3D / hero FX | **Spline** embed *or* lightweight **Three.js / shader gradient** | Lazy‑loaded, never blocks LCP |
+| Icons | **lucide-react** | |
+| Forms | **React Hook Form** + **Zod** | Shared Zod schemas FE+BE |
+| Data fetching | **TanStack Query** (client) + RSC (server) | |
+| Light client state | **Zustand** | cart/UI only |
+| Fonts | Display: **Clash Display** / **Satoshi** (Fontshare). Body: **Inter** / **Geist** | self‑host via `next/font` |
+
+### Backend
+| Concern | Choice | Notes |
+|---|---|---|
+| Runtime | **Next.js Route Handlers** (monolith) | One repo, fast to ship. Scale path: extract to a NestJS service later. |
+| ORM | **Prisma** | |
+| DB | **PostgreSQL 18 on AWS RDS** (already provisioned, `ap-south-1`) | DB name `w3codify` (create it) |
+| Auth | **Auth.js (NextAuth v5)** — Google OAuth + custom **Phone‑OTP** credentials | §11 |
+| OTP / SMS / WhatsApp | **MSG91** (India) or Twilio | OTP login + WhatsApp notifications |
+| Bot protection | **Google reCAPTCHA v3** | on Register + Request Callback |
+| Object storage | **AWS S3** (`ap-south-1`) + **CloudFront** | avatars, assets |
+| Video | **Mux** (preferred) or S3 + CloudFront HLS | adaptive streaming, signed playback |
+| Payments | **Razorpay** | ₹ checkout for paid cohorts |
+| Email | **AWS SES** or **Resend** | transactional |
+| AI | **Anthropic Claude API** (`claude-sonnet-4-6` for tutor, `claude-haiku-4-5` for cheap tasks) | §8 |
+
+### Infra / DevOps
+- **Host:** existing **EC2 (Ubuntu 26.04, ap‑south‑1)** behind **Nginx** reverse proxy, app under **PM2** (or Docker Compose).
+- **TLS:** Let's Encrypt (Certbot) for `w3codify.com`.
+- **CI/CD:** **GitHub Actions** → build → SSH deploy to EC2 (`git pull` + `pnpm i` + `prisma migrate deploy` + `pm2 reload`). The repo→EC2 pull path is already wired.
+- **Package manager:** **pnpm**.
+- **Node:** 22 LTS.
+
+---
+
+## 4. Information Architecture (routes)
+
+```
+/                         Home (marketing, SSG)
+/courses                  Course catalog (SSG + client filter)
+/courses/[slug]           Single course (SSR, JSON-LD)
+/bootcamp                 Bootcamp/cohort landing
+/about                    About us
+/auth/signin              Phone-OTP + Google
+/auth/signup              Register (name, phone, email, consent, reCAPTCHA)
+/profile                  Profile (protected) — Basic / Professional / Batches / Projects
+/classroom                Enrolled student dashboard (protected)
+/classroom/[courseId]     Course player (lessons, video, AI tutor) (protected)
+/admin                    Admin dashboard (ADMIN only)
+/admin/courses            Course CRUD + curriculum builder
+/admin/courses/[id]       Edit course → sections → lessons (rich content + media)
+/admin/instructors        Instructor CRUD
+/admin/students           Student list / enrollments
+/admin/leads              Request-callback leads (kanban: new→contacted→closed)
+/admin/media              Media library (upload/manage Whisk images & video)
+/legal/privacy /terms     Legal
+  (modal) Request Callback — global, openable from nav on any page
+```
+
+> **The course catalog is fully CMS‑driven.** We seed 3 courses (§7.1) but **all courses,
+> sections, lessons, prices, and images are created/edited by admins in `/admin`** — no
+> code change needed to add a course. The marketing/catalog pages read from the DB.
+
+**Nav (signed out):** Home · Courses · Bootcamp · About Us · Request Callback — **Sign In**
+**Nav (signed in):** Home · Courses · Bootcamp · Classroom · Request Callback — **Avatar ▾** (Profile, Classroom, Logout)
+
+---
+
+## 5. Design System (the crown jewel)
+
+### 5.1 Brand & Color Tokens
+Dark, cinematic, high‑contrast with a molten‑orange accent.
+
+```css
+/* tokens.css — expose as CSS variables + Tailwind theme */
+--bg:            #0A0A0B;   /* near-black canvas */
+--bg-elevated:   #121214;   /* cards */
+--bg-subtle:     #1A1A1E;   /* inputs, hover */
+--border:        #26262B;
+--fg:            #F5F5F7;   /* primary text */
+--fg-muted:      #A1A1AA;   /* secondary text */
+--brand:         #FF5A1F;   /* primary orange */
+--brand-600:     #E64A12;
+--brand-glow:    #FF7A3C;
+--accent-grad:   linear-gradient(135deg,#FF7A3C 0%,#FF5A1F 50%,#E0360A 100%);
+--success:       #3DD68C;
+--live:          #FF3B3B;   /* "LIVE" badge */
+--ring:          #FF5A1F;
+```
+- Light mode is **optional** (ship dark first; the marketing site is dark‑only).
+- Use the orange **sparingly** — for CTAs, key highlights, the "LIVE" badge, and
+  single hero accent words (e.g. the boxed word *Companies* / *Placed* in the hero).
+
+### 5.2 Typography
+- **Display** (hero, section titles): Clash Display / Satoshi — tight tracking, heavy
+  weight, large (clamp 2.5rem → 5.5rem). Mixed‑weight headlines allowed.
+- **Body:** Inter/Geist, 16px base, 1.6 line‑height, `--fg-muted` for paragraphs.
+- Use **fluid type** (`clamp()`); never fixed px for headings.
+
+### 5.3 Spacing, Radius, Elevation
+- 4px spacing scale. Section vertical rhythm: 96–160px desktop, 64–88px mobile.
+- Radius: inputs/buttons `12px`, cards `16–20px`, modals `20px`.
+- Elevation via subtle borders + soft glows, **not** heavy shadows (dark theme).
+- Glassmorphism for the sticky nav and floating cards (`backdrop-blur`, 6–10% white overlay).
+
+### 5.4 Motion language
+- **Lenis** smooth scroll site‑wide.
+- Section entrances: fade + 16–24px rise, staggered children, triggered at 15% in view.
+- **Magnetic** primary buttons; subtle scale + glow on hover.
+- Animated number counters for stats (600k, 1M…).
+- Marquee row of tech logos (HTML/CSS/JS/React/Node/Python/AI…), infinite, pauses on hover.
+- Respect `prefers-reduced-motion`: disable parallax/marquee, keep opacity fades.
+
+### 5.5 Core components (build as reusable, themed shadcn)
+Button (primary/secondary/ghost/link), Input, Select, Checkbox, Textarea, OTP input,
+Badge (incl. LIVE + discount), CourseCard, Modal/Dialog, Sheet (mobile nav), Avatar,
+Dropdown menu, Accordion (FAQ), Tabs, Tooltip, Toast, Skeleton, StatCounter, Marquee,
+SectionHeading, GradientText, Navbar, Footer.
+
+### 5.6 God‑Level Frontend Standard (MANDATORY)
+This is the bar. "Basic" works; "advanced" looks nice; **we ship god‑level** — the
+combined effect that makes users say *"this feels premium."* Apply per the **Scope**
+column (M = Marketing pages, A = App/Classroom/Dashboard, ✓ = everywhere).
+
+| # | Dimension | God‑level requirement | Scope |
+|---|---|---|---|
+| 1 | **Visual design** | Pixel‑perfect alignment, visual rhythm, sophisticated gradients, custom illustrations, instantly recognizable brand identity (think Apple / Stripe / Linear) | ✓ |
+| 2 | **Performance** | **Lighthouse 100** target, first load < 1s, optimized/next‑gen images, lazy‑load, code‑split, tree‑shake, CDN + edge rendering, smart caching — page feels *instant* | ✓ |
+| 3 | **Animation & motion** | Physics‑based (spring) animations, shared‑element transitions, scroll storytelling, microinteractions, **motion that communicates state** | ✓ |
+| 4 | **Responsiveness** | Perfect at 320px → foldables → tablet → laptop → ultrawide → 4K. Nothing stretched or cramped | ✓ |
+| 5 | **Accessibility** | Full keyboard nav, screen‑reader support, ARIA, AA contrast, **reduced‑motion mode**, focus management, accessible forms | ✓ |
+| 6 | **UX clarity** | User never asks *"where do I click / what happened / did it save?"* — always surface state, progress, errors, success, loading | ✓ |
+| 7 | **Forms** | Inline validation, **auto‑formatting** (e.g. `9876543210` → `+91 98765 43210`), password/OTP UX, autosave + draft recovery, smart suggestions, autofill | ✓ |
+| 8 | **Data viz** | Interactive charts, drill‑down, realtime, filters, export (Recharts / ECharts / D3) | A (classroom progress, admin) |
+| 9 | **Search** | Instant, fuzzy, typo‑tolerant, recent + suggestions, full keyboard nav (Google/Amazon‑class) | M (courses) · A |
+| 10 | **Realtime** | Notifications, presence, live dashboards, AI‑tutor live stream | A |
+| 11 | **State mgmt** | Never lose user data, never unexpectedly refresh, never show stale data — TanStack Query + Zustand used *properly* | ✓ |
+| 12 | **Error handling** | Human messages ("Something went wrong. Try again.") + retry + logging + recovery path — never a raw 500 | ✓ |
+| 13 | **Frontend security** | XSS protection, CSP, secure cookies, CSRF, input sanitization | ✓ |
+| 14 | **Progressive enhancement** | Usable on slow networks / old devices / partial JS failure | ✓ |
+| 15 | **Advanced interactions** | Drag‑drop, resizable panels, multi‑select, keyboard shortcuts, **command palette (⌘K)** (VS Code / Notion class) | A |
+| 16 | **Personalization** | Theme prefs, remembered layouts, localization‑ready, custom dashboards | A |
+| 17 | **Mobile excellence** | Touch gestures, swipe actions, bottom‑sheet UIs, haptics where supported — native‑like feel | ✓ |
+| 18 | **Offline / PWA** | Installable, offline access to enrolled lessons, background sync, push notifications | A |
+| 19 | **AI features** | Smart search, AI assistant/tutor, recommendations, natural‑language filtering, auto‑summaries | ✓ (see §8) |
+| 20 | **Engineering quality** | Clean component architecture, TypeScript strict, tests, CI/CD, monitoring, error tracking, feature flags | ✓ |
+
+**God‑Level Checklist — every page must pass:**
+`✅ Beautiful design  ✅ Instant performance  ✅ Smooth (spring) animations  ✅ Accessibility
+✅ Mobile perfection  ✅ Realtime where relevant  ✅ Excellent forms  ✅ Smart search
+✅ Offline (app)  ✅ Personalization  ✅ Security  ✅ AI‑powered  ✅ Zero‑confusion UX
+✅ Pixel‑perfect  ✅ Robust engineering`
+
+> Prioritization for v1: items **1–7, 11–14, 17, 19, 20 are required on launch**
+> (especially across the marketing pages). Items **8–10, 15–16, 18** are required for the
+> **App/Classroom** surface and may land in the classroom milestone (§16 steps 10–11).
+> Nothing on this list is "nice to have" long‑term — it's the definition of done.
+
+---
+
+## 6. Page Specs
+
+### 6.1 HOME `/` — *make this the best page in our space*
+A long, scroll‑driven narrative. Sections, in order:
+
+1. **Sticky glass navbar** — logo (mark + "W3Codify"), centered pill nav, right‑side
+   Sign In / Avatar. Shrinks + increases blur on scroll. Mobile: hamburger → full‑screen sheet.
+2. **Hero** (full viewport):
+   - Eyebrow: `LEARN. BUILD. GET PLACED.` (letter‑spaced, brand color).
+   - Kinetic headline: **"Become The Software Engineer That `[Companies]` Want To Hire!"**
+     — one word boxed/outlined in brand orange, animated underline/box draw.
+   - Subcopy: community + outcomes one‑liner.
+   - Primary CTA **"Start Journey →"** (magnetic), secondary **"Watch Demo"** (opens video modal).
+   - Social proof row: stacked avatars + "1M+ students learning in our mastery programs".
+   - Background: animated aurora/shader gradient or Spline 3D object (lazy, non‑blocking),
+     subtle grid, floating code/AI motifs. Parallax on scroll.
+3. **Trust strip / stat band:** animated counters — `600k+ Subscribers`, `1M+ Learners`,
+   placement %, avg package — with a faint "make it happen" kinetic text behind.
+4. **AI Tutor teaser (our differentiator):** an interactive mini‑demo — user types a
+   coding doubt, a faked/streamed answer types out (wire to Claude API in §8). Headline:
+   *"Stuck at 2AM? Your AI mentor never sleeps."*
+5. **Featured courses carousel:** 3–6 `CourseCard`s (LIVE badge, tags, title, struck
+   price + discount), "View all courses →".
+6. **Why W3Codify** — feature grid (6 cards w/ icon, hover micro‑interaction): Live cohorts,
+   AI doubt‑solving, Real projects, Placement support, Community, Industry mentors.
+7. **Learning path / roadmap** — animated horizontal/vertical timeline (Foundations →
+   Projects → Specialization (GenAI/DSA/Full‑Stack) → Placement).
+8. **Outcomes / placements** — logo wall of hiring companies (greyscale→color on hover),
+   salary/placement stats, 2–3 success snapshots.
+9. **Instructor spotlight** — mentor cards with photo, role, socials.
+10. **Testimonials** — auto‑scrolling marquee of student quotes + avatars + ratings.
+11. **Pricing / cohorts** — comparison of Free vs Paid cohorts, "Most Popular" highlight.
+12. **FAQ** — accordion.
+13. **Big CTA band** — gradient panel, "Start learning for free", phone capture.
+14. **Footer** — rich: brand blurb, course links, company, legal, socials, newsletter,
+    "Made in India" line. Subtle top border glow.
+
+> Copy may be improved by you, but keep the boxed‑accent‑word hero device and the
+> outcome‑driven tone. Every section must scroll‑reveal and be mobile‑perfect.
+
+### 6.2 COURSES `/courses`
+- Section heading: eyebrow `COURSES`, title **"Level Up Your Coding Skills With Expert‑Led Courses"**.
+- Filter/search bar (by tag: Full‑Stack, GenAI, DSA, Data Science…; by level; by Live/Self‑paced).
+- Responsive grid of `CourseCard`: thumbnail (instructor image), top‑right **LIVE** badge,
+  tag chips, title, **₹ price struck + discounted price + "% OFF"**, rating, CTA → single course.
+- Empty/loading skeletons. SSG + client‑side filtering.
+
+### 6.3 SINGLE COURSE `/courses/[slug]`
+Udemy‑class layout:
+- Left/main: breadcrumb, title, short description, rating + #ratings + #learners, instructor(s),
+  last‑updated, language, **"What you'll learn"** checklist grid, curriculum accordion
+  (sections → lessons w/ durations, free‑preview markers), requirements, full description,
+  related topics chips, reviews.
+- Right: **sticky enroll card** — preview video thumbnail (opens player), price (or **Free**),
+  **Enroll Now** (auth‑gated → creates enrollment), "This course includes" list
+  (hours on‑demand video, downloadable resources, mobile/TV access, certificate),
+  share, wishlist.
+- JSON‑LD `Course`. OG image per course.
+
+### 6.4 SIGN IN `/auth/signin`
+- Centered card. Title **"Sign In"**, link *New user? Create an account*.
+- **Phone Number** field → **Send OTP** → 6‑digit OTP input → verify.
+- Divider **"Or"** → **Continue with Google**.
+- On success: redirect to `/classroom` (or intended route).
+
+### 6.5 SIGN UP `/auth/signup`
+- Title **"Sign Up"**, link *Already have an account? Sign In*.
+- Fields: **First Name, Last Name** (row), **Phone Number**, **Email**.
+- Consent checkbox (pre‑checked, editable): *"I agree to receive communications from
+  W3Codify via WhatsApp, SMS, email, and phone calls, even if registered under DND/NDNC."*
+- **reCAPTCHA v3** before submit.
+- **Register Now** (primary) → creates user → OTP verify → signed in.
+- Divider **"Or"** → **Continue with Google**.
+
+### 6.6 REQUEST CALLBACK (global modal)
+Openable from nav on any page. Dialog **"Request a Callback"**, subcopy.
+- Fields: **Name**, **Phone no.** (country‑code select, default +91),
+  **Enquiry For** (select: *Online Course (Website)*, *Offline Course*),
+  **How can we help you?** (textarea).
+- **reCAPTCHA v3**. CTA **"Book My Callback"** → stores lead + email/WhatsApp notify ops.
+- Success state inside modal; graceful error.
+
+### 6.7 PROFILE `/profile` (protected)
+Two‑column app layout (matches reference):
+- **Left sidebar:** "My Profile", avatar (upload → S3), name + **STUDENT** badge,
+  section nav: **Basic Info**, **Professional**, **Your Batches**, **My Projects**;
+  mini‑stats: **Purchased Batches**, **Enrolled Batches**.
+- **Main — Basic Info:** *Personal Information* (First/Last Name, Email, Contact,
+  Date of Birth, Bio) + *Location & Professional* (City, State, Pincode, Country).
+  **Edit Profile** / **Log Out** actions. Inline validation, optimistic save, toasts.
+- **Professional:** work + education details. **Your Batches:** enrolled/purchased cohorts.
+  **My Projects:** submitted projects (title, repo link, status).
+
+### 6.8 CLASSROOM `/classroom` + `/classroom/[courseId]` (protected)
+- Dashboard: enrolled courses, progress rings, "continue learning", upcoming live sessions.
+- Course player: video (Mux/HLS), lesson list + progress, resources, **AI Tutor panel**
+  (§8) docked beside the player with full lesson context.
+
+---
+
+### 6.9 ADMIN PANEL `/admin/*` (ADMIN role only) — the content engine
+This is how the team runs the school without touching code. Protected by middleware
+(role = ADMIN), its own clean app shell (sidebar nav, breadcrumb, command palette ⌘K).
+
+- **Dashboard:** KPIs — total students, active enrollments, revenue (₹), new leads,
+  course completion — with charts (Recharts) and recent activity.
+- **Courses CRUD + Curriculum Builder:** create/edit a course (title, slug auto‑gen,
+  subtitle, description (rich), tags, level, price/MRP, `isLive`, thumbnail, preview video,
+  instructors). **Drag‑and‑drop curriculum builder**: sections → lessons, reorder, set
+  free‑preview, durations. Publish/Unpublish (draft state). Live preview link.
+- **Lesson editor (rich):** each lesson is built from **content blocks** (see `LessonBlock`):
+  video, rich text, **image/diagram** (from media library — this is where the in‑lesson
+  study visuals live), code block (syntax‑highlighted), callout/note, quiz/MCQ, file/resource,
+  embed. Reorderable. This is what makes lessons visual and "fun to study".
+- **Instructors CRUD:** name, role, bio, photo, socials.
+- **Students & Enrollments:** searchable table, view a student, grant/revoke access, refunds.
+- **Leads (Request Callback):** kanban board (new → contacted → closed), notes, assignee,
+  export CSV.
+- **Media Library:** upload to S3, grid view, tag/search, reuse across lessons & pages —
+  the home for all Whisk‑generated images. Shows usage. (See `WHISK_IMAGE_PROMPTS.md`.)
+- **Settings:** site config, feature flags, pricing, coupon codes.
+
+All admin mutations: Zod‑validated, optimistic UI, toasts, audit‑logged (`AdminAuditLog`),
+soft‑delete where it matters. Tables: sortable, filterable, paginated, bulk actions.
+
+---
+
+## 7. Data Model (Prisma — starting schema; extend as needed)
+
+```prisma
+model User {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String?
+  email         String?  @unique
+  phone         String   @unique
+  phoneVerified Boolean  @default(false)
+  emailVerified DateTime?
+  avatarUrl     String?
+  role          Role     @default(STUDENT)
+  bio           String?
+  dateOfBirth   DateTime?
+  city          String?
+  state         String?
+  pincode       String?
+  country       String?
+  consentComms  Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  enrollments   Enrollment[]
+  projects      Project[]
+  accounts      Account[]   // Auth.js
+  sessions      Session[]
+  aiThreads     AiThread[]
+}
+
+enum Role { STUDENT INSTRUCTOR ADMIN }
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  subtitle    String?
+  description String
+  thumbnail   String?
+  previewVideo String?
+  priceInr    Int      @default(0)   // 0 = free
+  mrpInr      Int?
+  isLive      Boolean  @default(false)
+  level       Level    @default(BEGINNER)
+  tags        String[]
+  rating      Float    @default(0)
+  ratingCount Int      @default(0)
+  learners    Int      @default(0)
+  instructors Instructor[] @relation("CourseInstructors")
+  sections    Section[]
+  enrollments Enrollment[]
+  createdAt   DateTime @default(now())
+}
+
+enum Level { BEGINNER INTERMEDIATE ADVANCED }
+
+model Section { id String @id @default(cuid()) courseId String course Course @relation(fields:[courseId],references:[id]) title String order Int lessons Lesson[] }
+model Lesson  { id String @id @default(cuid()) sectionId String section Section @relation(fields:[sectionId],references:[id]) title String videoUrl String? durationSec Int @default(0) isFreePreview Boolean @default(false) order Int resources Json? }
+model Instructor { id String @id @default(cuid()) name String role String? bio String? photo String? socials Json? courses Course[] @relation("CourseInstructors") }
+
+// Add to Course: status CourseStatus @default(DRAFT)  (DRAFT|PUBLISHED|ARCHIVED) — catalog shows PUBLISHED only.
+enum CourseStatus { DRAFT PUBLISHED ARCHIVED }
+
+// Rich lesson content — ordered blocks render the lesson body (admin-built in /admin).
+model LessonBlock {
+  id        String   @id @default(cuid())
+  lessonId  String
+  lesson    Lesson   @relation(fields:[lessonId], references:[id])
+  type      BlockType
+  order     Int
+  // shape depends on type: TEXT{md}, IMAGE{mediaId,caption,alt}, CODE{lang,code},
+  // VIDEO{url}, CALLOUT{variant,md}, QUIZ{question,options,answer}, FILE{mediaId}, EMBED{url}
+  data      Json
+  mediaId   String?
+  media     MediaAsset? @relation(fields:[mediaId], references:[id])
+}
+enum BlockType { TEXT IMAGE CODE VIDEO CALLOUT QUIZ FILE EMBED }
+
+// Media library — every uploaded/Whisk image & asset; reused across lessons + pages.
+model MediaAsset {
+  id        String   @id @default(cuid())
+  url       String              // S3/CloudFront URL
+  kind      String   @default("image") // image|video|file
+  alt       String?
+  caption   String?
+  width     Int?
+  height    Int?
+  tags      String[]
+  uploadedBy String?
+  blocks    LessonBlock[]
+  createdAt DateTime @default(now())
+}
+
+model AdminAuditLog { id String @id @default(cuid()) actorId String action String entity String entityId String? meta Json? createdAt DateTime @default(now()) }
+
+// NOTE: give Lesson a `blocks LessonBlock[]` relation field.
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String   user User @relation(fields:[userId],references:[id])
+  courseId  String   course Course @relation(fields:[courseId],references:[id])
+  type      EnrollType @default(FREE)
+  status    EnrollStatus @default(ACTIVE)
+  progress  Json?       // lessonId -> completed
+  paymentId String?
+  createdAt DateTime @default(now())
+  @@unique([userId, courseId])
+}
+enum EnrollType { FREE PAID }
+enum EnrollStatus { ACTIVE COMPLETED CANCELLED }
+
+model Project { id String @id @default(cuid()) userId String user User @relation(fields:[userId],references:[id]) title String repoUrl String? liveUrl String? status String @default("submitted") createdAt DateTime @default(now()) }
+
+model CallbackLead {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  enquiryFor String
+  message   String?
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+}
+
+model OtpRequest { id String @id @default(cuid()) phone String codeHash String expiresAt DateTime attempts Int @default(0) createdAt DateTime @default(now()) }
+
+model AiThread { id String @id @default(cuid()) userId String user User @relation(fields:[userId],references:[id]) courseId String? title String? messages AiMessage[] createdAt DateTime @default(now()) }
+model AiMessage { id String @id @default(cuid()) threadId String thread AiThread @relation(fields:[threadId],references:[id]) role String content String createdAt DateTime @default(now()) }
+
+// Account/Session/VerificationToken per Auth.js adapter
+```
+
+### 7.1 Launch Courses & Curriculum Model
+Seed these **3 courses** at launch. Audience = **people who already know the fundamentals**
+(not first‑year beginners). Every course follows the same ladder:
+
+```
+Index/Overview  →  Basics refresher (2–3 lessons, fast)  →  ADVANCED (the bulk)  →  GOD tier (elite, real-world mastery)
+```
+The "Basics" section is a quick on‑ramp, **not** a from‑zero teardown — then we jump to
+Advanced and finish at GOD level.
+
+| Slug | Title | Arc (Basics → Advanced → GOD) |
+|---|---|---|
+| `machine-learning-deep-learning` | **Machine Learning & Deep Learning** | refresher (math/ML intuition, sklearn) → advanced (deep nets, CNN/RNN/Transformers, training at scale) → GOD (LLMs, fine‑tuning, RAG, MLOps, research‑grade projects) |
+| `cloud-computing` | **Cloud Computing** | refresher (core cloud + Linux/networking) → advanced (compute/storage/DB, IaC, containers, K8s, CI/CD) → GOD (multi‑region architecture, serverless at scale, cost/security, SRE) |
+| `cyber-security` | **Cyber Security** | refresher (security fundamentals, networking) → advanced (web/app pentesting, OWASP, tooling, blue‑team) → GOD (red‑team ops, exploit dev, cloud/AppSec, threat hunting) |
+
+Tier visuals come from `WHISK_IMAGE_PROMPTS.md` §B; course cards from §A. Mark each course
+`isLive` as appropriate and price the GOD/full track as a paid cohort, with a free intro.
+
+> Build the schema (§7) generically; seed **these three** as starter content, but the
+> catalog is unlimited and **fully managed via the Admin Panel (§6.9)** — admins add more
+> courses, lessons, and in‑lesson images with zero code changes.
+
+---
+
+## 8. AI Teaching Features (the moat — build with Claude API)
+
+Use the **Anthropic Claude API** with **prompt caching** and **streaming**.
+
+1. **AI Tutor (in‑classroom):** context‑aware chat docked beside the lesson. System prompt
+   includes the current lesson title/transcript + the student's code. Streams responses.
+   Persist threads (`AiThread`/`AiMessage`). Model: `claude-sonnet-4-6`.
+2. **Explain this code / Fix my error:** student pastes code or an error; AI returns a
+   step‑by‑step explanation and a corrected snippet with a diff.
+3. **AI project review:** on project submit, AI gives structured feedback (correctness,
+   readability, next steps) — store as a review.
+4. **Personalized next step:** based on progress, AI recommends the next lesson/course.
+5. **Home‑page teaser:** the interactive demo in §6.1.4 streams a real (rate‑limited,
+   unauthenticated‑safe) Claude response so the "wow" is genuine.
+
+**Implementation notes**
+- Server‑side only (`ANTHROPIC_API_KEY` never reaches the client).
+- Stream via Route Handler (`ReadableStream`) → client renders token‑by‑token.
+- **Prompt caching** on the static system/context blocks to cut cost.
+- Rate‑limit per user/IP; cheap tasks (titles, summaries) → `claude-haiku-4-5`.
+- Guardrails: keep the tutor on‑topic (coding/learning), refuse to just hand over
+  graded‑assignment answers — coach instead.
+
+---
+
+## 9. API Surface (Route Handlers)
+
+```
+POST /api/auth/otp/send        { phone }                 -> sends OTP (rate-limited)
+POST /api/auth/otp/verify      { phone, code }           -> session
+POST /api/auth/register        { firstName,lastName,phone,email,consent,captcha }
+GET  /api/courses              ?tag&level&q              -> list
+GET  /api/courses/[slug]                                  -> detail
+POST /api/enrollments          { courseId }              -> enroll (auth)
+POST /api/payments/razorpay/order   { courseId }         -> order
+POST /api/payments/razorpay/verify  { ... }              -> confirm + enroll
+GET  /api/profile              (auth)                    -> me
+PATCH /api/profile             (auth) { ...fields }       -> update
+POST /api/profile/avatar       (auth) multipart          -> S3 upload -> url
+POST /api/callback             { name,phone,enquiryFor,message,captcha }
+POST /api/ai/chat              (auth) { threadId?,courseId?,message } -> SSE stream
+POST /api/ai/explain           { code,language,captcha? } -> stream (home teaser: throttled)
+
+# Admin (ADMIN role; all audit-logged)
+GET/POST/PATCH/DELETE /api/admin/courses[/[id]]        course CRUD + publish
+POST   /api/admin/courses/[id]/sections                 add/reorder sections
+POST   /api/admin/lessons[/[id]]/blocks                 add/reorder/edit lesson blocks
+GET/POST/PATCH/DELETE /api/admin/instructors[/[id]]
+GET    /api/admin/students            ?q&course          list/search enrollments
+GET/PATCH /api/admin/leads[/[id]]                        lead status/notes
+POST   /api/admin/media               multipart          -> S3 upload -> MediaAsset
+GET    /api/admin/media               ?tag&q             media library
+GET    /api/admin/stats                                  dashboard KPIs
+```
+All inputs validated with **Zod**. reCAPTCHA verified server‑side on register/callback.
+
+---
+
+## 10. Folder Structure
+
+```
+src/
+  app/
+    (marketing)/ page.tsx  courses/  bootcamp/  about/  layout.tsx
+    (app)/ profile/  classroom/  layout.tsx        # protected group
+    auth/ signin/  signup/
+    api/ ...route handlers
+    layout.tsx  globals.css
+  components/
+    ui/            # shadcn primitives (themed)
+    marketing/     # Hero, Stats, CourseCarousel, FeatureGrid, Roadmap, Testimonials...
+    course/  profile/  classroom/  ai/  shared/
+  lib/             # prisma, auth, anthropic, s3, razorpay, msg91, recaptcha, utils
+  hooks/  stores/  styles/tokens.css
+  server/          # services, validators (zod schemas shared)
+prisma/ schema.prisma  migrations/
+public/  fonts/  og/
+```
+
+---
+
+## 11. Auth & Security
+
+- **Auth.js v5** with: Google provider; **Credentials provider for Phone‑OTP**
+  (verify against hashed `OtpRequest`, mark `phoneVerified`).
+- OTP: 6‑digit, 5‑min TTL, max 5 attempts, resend cooldown 30s, hashed at rest, per‑IP+phone rate limit.
+- **reCAPTCHA v3** server‑verified on `/auth/register` and `/api/callback` (score threshold 0.5).
+- Sessions: JWT or DB sessions (Prisma adapter). Protect `(app)` group via middleware.
+- Security headers (CSP, HSTS, X‑Frame‑Options), CSRF on mutations, input sanitization,
+  rate limiting (Upstash/Redis or in‑proc), secrets only in env (never client).
+- S3 uploads via presigned URLs; validate mime/size; serve via CloudFront.
+
+---
+
+## 12. Integrations & Env Vars
+
+Create `.env.example` (committed, no secrets). Real `.env` is **gitignored**.
+
+```
+DATABASE_URL=postgresql://...@<rds-endpoint>:5432/w3codify?sslmode=require
+NEXTAUTH_SECRET=         NEXTAUTH_URL=
+GOOGLE_CLIENT_ID=        GOOGLE_CLIENT_SECRET=
+MSG91_AUTH_KEY=          MSG91_SENDER_ID=        MSG91_OTP_TEMPLATE_ID=
+RECAPTCHA_SITE_KEY=      RECAPTCHA_SECRET_KEY=
+AWS_REGION=ap-south-1    AWS_ACCESS_KEY_ID=      AWS_SECRET_ACCESS_KEY=
+S3_BUCKET_NAME=          CLOUDFRONT_URL=
+MUX_TOKEN_ID=            MUX_TOKEN_SECRET=
+RAZORPAY_KEY_ID=         RAZORPAY_KEY_SECRET=
+ANTHROPIC_API_KEY=
+SES_FROM_EMAIL= (or RESEND_API_KEY=)
+```
+
+> The RDS instance (`w3codify-db`, ap‑south‑1) and S3/EC2 already exist. **Create the
+> `w3codify` database** on RDS before `prisma migrate`. The EC2's security group must
+> allow the app host to reach RDS:5432.
+
+---
+
+## 13. SEO, Analytics, Observability
+- `next-sitemap`, robots, per‑route metadata, OG images (static + per‑course dynamic via `@vercel/og` style route).
+- JSON‑LD: Organization (home), Course (single course), BreadcrumbList.
+- Analytics: PostHog or GA4 + event tracking on CTAs/enroll/callback funnel.
+- Error tracking: Sentry. Structured server logs.
+
+---
+
+## 14. Quality Bar / Definition of Done
+- TypeScript strict, no `any` in app code, ESLint + Prettier clean.
+- Every form: Zod‑validated, accessible labels, error + success states.
+- Every async surface: loading skeleton + error boundary + empty state.
+- Unit tests (Vitest) for lib/validators; e2e smoke (Playwright) for signup→enroll and callback.
+- Lighthouse budget met (§2). Reduced‑motion honored. Keyboard nav verified.
+- Seed script with demo courses/instructors so the site looks full on first run.
+
+---
+
+## 15. Visual Reference
+Original requirement screenshots live in `W3Codify - Requirement Doc/images/`
+(home, signin, signup, courses, single‑course, callback, profile). **Match the
+information & fields exactly; elevate the visual quality far beyond them.** Keep the
+dark + molten‑orange identity and the bold display headlines.
+
+---
+
+## 16. Build Order (do it in this sequence)
+
+1. **Scaffold:** Next.js 15 + TS + Tailwind v4 + shadcn + fonts + `tokens.css` + Lenis. Base layout, Navbar, Footer, Button/Input primitives.
+2. **Home page** — full §6.1, all sections, animations, responsive, Lighthouse pass. *(This is the headline deliverable — make it exceptional.)*
+3. **Design system page** (`/dev/ui`, non‑prod) showcasing components.
+4. **Prisma + RDS** — schema §7, migrate, seed demo data.
+5. **Courses** list + **Single course** (with JSON‑LD, sticky enroll).
+6. **Auth** — Phone‑OTP + Google, Sign In, Sign Up (+reCAPTCHA), middleware‑protected routes + roles.
+7. **Admin Panel** (§6.9) — course CRUD + drag‑drop curriculum builder + **rich lesson block
+   editor** + media library (S3) + instructors + leads kanban + students. This is what lets
+   you add unlimited courses without code. Build before relying on seed data.
+8. **Request Callback** modal + API + lead storage + ops notify.
+9. **Profile** — all sections, avatar upload to S3, edit/save.
+10. **Enrollment + Razorpay** for paid cohorts.
+11. **Classroom** — dashboard + course player rendering **lesson blocks** (incl. study images).
+12. **AI Tutor** (§8) — streaming chat, explain/fix, project review, home teaser.
+13. **Polish pass** — SEO, analytics, Sentry, a11y audit, perf budget, tests.
+14. **Deploy** — Nginx + PM2 on EC2, Certbot TLS, GitHub Actions CI/CD (git pull → migrate → reload).
+
+> After each step: commit + push to `main`; the EC2 pull keeps staging in sync.
+
+---
+
+**Remember:** the home page is the audience magnet — invest disproportionate effort
+there. Cinematic, fast, conversion‑first. Build the rest to the same bar.
