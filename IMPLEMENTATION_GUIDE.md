@@ -89,10 +89,10 @@ SEO, analytics, Sentry, a11y audit, perf budget, tests. Then deploy per `DEPLOY.
 - [x] **S2** Prisma schema + RDS connected + migrated
 - [x] **S2** 3 courses seeded
 - [x] **S2** Courses list + Single course page
-- [ ] **S3** Auth — Phone-OTP + Google + protected routes
-- [ ] **S3** Admin — course CRUD + curriculum builder
-- [ ] **S3** Admin — rich lesson-block editor + media library
-- [ ] **S3** Admin — leads + students
+- [x] **S3** Auth — Phone-OTP + Google + protected routes
+- [x] **S3** Admin — course CRUD + curriculum builder
+- [x] **S3** Admin — rich lesson-block editor + media library
+- [x] **S3** Admin — leads + students
 - [ ] **S4** Request Callback (modal + leads)
 - [ ] **S4** Profile — all sections + avatar to S3
 - [ ] **S4** Enrollment + Razorpay
