@@ -1,0 +1,36 @@
+# Secrets — never commit
+.env
+.env.*
+
+# SSH / private keys / certs — never commit
+*.pem
+*.key
+*.ppk
+*.crt
+*.cer
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+w3codify-key.pem
+
+# Tokens / credentials
+*.token
+*credentials*
+*secret*
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
