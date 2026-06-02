@@ -11,26 +11,36 @@
    read it. It re-reads for full context every session.
 2. **One milestone per session.** Scope creep kills big builds.
 3. **Verify before advancing.** Run it, click it, see it work — *then* commit and continue.
-4. **Commit + push after every chunk.** Clean history; auto-pulls to EC2.
+4. **Every stage ships end-to-end.** After building each milestone: commit + push to GitHub,
+   deploy to EC2 (DEPLOY.md), and apply RDS migrations. Don't leave deploy for the end.
 5. **Never commit `.env`.** It's gitignored. Secrets stay local (and `scp`'d to EC2 — see `DEPLOY.md`).
 6. **Match the bar.** Everything ships to the §5.6 "God-Level Frontend Standard".
 
 ---
 
-## Kickoff prompt (paste at the start of each session — change the step)
+## Kickoff prompt (paste at the start of each session — change the session number)
+Each stage goes all the way to live: **build → GitHub → EC2 → RDS.**
 ```
-Read BUILD_SPEC.md and IMPLEMENTATION_GUIDE.md.
-Implement ONLY <SESSION N — milestone name> below. Do not start later milestones.
-Follow the tech stack (§3) and the God-Level Frontend Standard (§5.6) exactly.
-When done: run it locally, show me it works, then commit and push.
-Update the progress checklist in IMPLEMENTATION_GUIDE.md (tick the boxes you finished).
+Read BUILD_SPEC.md, IMPLEMENTATION_GUIDE.md, and DEPLOY.md.
+
+Build ONLY <SESSION N — milestone name>. Do not start later milestones.
+Follow the tech stack (§3) and the God-Level Frontend Standard (§5.6).
+
+Then, before finishing THIS stage, do all of these in order:
+1. Run it locally and show me it works.
+2. Commit and push to GitHub (main).
+3. Deploy to EC2 by following DEPLOY.md — first time, do the one-time EC2
+   setup, scp the .env, and set up Nginx + PM2. After that: pull + rebuild + restart.
+4. Apply database changes to RDS with Prisma migrations — first time, create the
+   w3codify database and open the RDS security group (DEPLOY.md §0).
+5. Confirm the live EC2 site is updated and give me the URL/IP.
+6. Tick the progress checklist in IMPLEMENTATION_GUIDE.md.
+
+Use the credentials in the local .env and the SSH key w3codify-key.pem.
 ```
 
-End-of-session prompt:
-```
-Run the app, confirm <milestone> works, fix anything broken, then commit + push.
-Tick the checklist. List anything deferred and why.
-```
+> Session 1 is frontend-only, so there's nothing to migrate on RDS yet (DB work starts
+> Session 2). That's expected — just create the DB and continue.
 
 ---
 

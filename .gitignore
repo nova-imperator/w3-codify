@@ -1,6 +1,7 @@
 # Secrets — never commit
 .env
 .env.*
+!.env.example
 
 # SSH / private keys / certs — never commit
 *.pem
@@ -34,3 +35,13 @@ Thumbs.db
 # Build output
 dist/
 build/
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Misc
+.fonttmp/
+.vercel

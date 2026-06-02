@@ -1,0 +1,46 @@
+/* ============================================================
+   W3Codify — Design Tokens (BUILD_SPEC §5.1–5.3)
+   Dark, cinematic, high-contrast with a molten-orange accent.
+   Exposed as CSS variables; mapped into Tailwind via @theme in globals.css.
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --bg: #0a0a0b; /* near-black canvas */
+  --bg-elevated: #121214; /* cards */
+  --bg-subtle: #1a1a1e; /* inputs, hover */
+  --border: #26262b;
+  --border-strong: #34343b;
+
+  /* Text */
+  --fg: #f5f5f7; /* primary text */
+  --fg-muted: #a1a1aa; /* secondary text */
+  --fg-faint: #6b6b73; /* tertiary / disabled */
+
+  /* Brand */
+  --brand: #ff5a1f; /* primary orange */
+  --brand-600: #e64a12;
+  --brand-700: #c83c0e;
+  --brand-glow: #ff7a3c;
+  --accent-grad: linear-gradient(135deg, #ff7a3c 0%, #ff5a1f 50%, #e0360a 100%);
+
+  /* Semantic */
+  --success: #3dd68c;
+  --live: #ff3b3b; /* "LIVE" badge */
+  --ring: #ff5a1f;
+
+  /* Radius (§5.3) */
+  --radius-sm: 8px;
+  --radius: 12px; /* inputs / buttons */
+  --radius-lg: 16px; /* cards */
+  --radius-xl: 20px; /* modals */
+  --radius-2xl: 28px;
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  /* Elevation (soft glows, not heavy shadows) */
+  --shadow-glow: 0 0 0 1px var(--border), 0 8px 40px -12px rgba(0, 0, 0, 0.8);
+  --shadow-brand: 0 8px 30px -8px rgba(255, 90, 31, 0.45);
+}
