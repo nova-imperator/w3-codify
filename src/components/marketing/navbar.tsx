@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { Menu, PhoneCall } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/site";
 import { Logo } from "@/components/shared/logo";
@@ -12,9 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/ui/magnetic";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { RequestCallbackDialog } from "./request-callback";
+import { UserMenu } from "./user-menu";
 
 export function Navbar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const user = session?.user;
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -74,14 +78,20 @@ export function Navbar() {
 
         {/* Right actions (desktop) */}
         <div className="hidden items-center gap-2 lg:flex">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/auth/signin">Sign In</Link>
-          </Button>
-          <Magnetic>
-            <Button asChild size="sm">
-              <Link href="/auth/signup">Start Journey</Link>
-            </Button>
-          </Magnetic>
+          {user ? (
+            <UserMenu user={user} />
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/auth/signin">Sign In</Link>
+              </Button>
+              <Magnetic>
+                <Button asChild size="sm">
+                  <Link href="/auth/signup">Start Journey</Link>
+                </Button>
+              </Magnetic>
+            </>
+          )}
         </div>
 
         {/* Mobile trigger */}
@@ -112,21 +122,53 @@ export function Navbar() {
                 ))}
               </nav>
               <div className="mt-auto flex flex-col gap-3">
+                {user && (
+                  <>
+                    <SheetClose asChild>
+                      <Link
+                        href="/classroom"
+                        className="rounded-[12px] px-4 py-3 text-lg font-medium text-fg-muted hover:bg-bg-subtle hover:text-fg"
+                      >
+                        Classroom
+                      </Link>
+                    </SheetClose>
+                    {user.role === "ADMIN" && (
+                      <SheetClose asChild>
+                        <Link
+                          href="/admin"
+                          className="rounded-[12px] px-4 py-3 text-lg font-medium text-brand hover:bg-bg-subtle"
+                        >
+                          Admin Panel
+                        </Link>
+                      </SheetClose>
+                    )}
+                  </>
+                )}
                 <RequestCallbackDialog>
                   <Button variant="secondary" size="lg" className="w-full">
                     <PhoneCall className="size-4" /> Request Callback
                   </Button>
                 </RequestCallbackDialog>
-                <SheetClose asChild>
-                  <Button asChild variant="ghost" size="lg" className="w-full">
-                    <Link href="/auth/signin">Sign In</Link>
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button asChild size="lg" className="w-full">
-                    <Link href="/auth/signup">Start Journey</Link>
-                  </Button>
-                </SheetClose>
+                {user ? (
+                  <SheetClose asChild>
+                    <Button asChild size="lg" className="w-full">
+                      <Link href="/profile">My Profile</Link>
+                    </Button>
+                  </SheetClose>
+                ) : (
+                  <>
+                    <SheetClose asChild>
+                      <Button asChild variant="ghost" size="lg" className="w-full">
+                        <Link href="/auth/signin">Sign In</Link>
+                      </Button>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button asChild size="lg" className="w-full">
+                        <Link href="/auth/signup">Start Journey</Link>
+                      </Button>
+                    </SheetClose>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>

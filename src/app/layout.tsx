@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
+import { SessionProvider } from "next-auth/react";
 import { fontVariables } from "@/lib/fonts";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { SITE } from "@/lib/site";
@@ -61,7 +62,9 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <SmoothScroll>{children}</SmoothScroll>
+        <SessionProvider>
+          <SmoothScroll>{children}</SmoothScroll>
+        </SessionProvider>
         <Toaster
           position="bottom-right"
           theme="dark"

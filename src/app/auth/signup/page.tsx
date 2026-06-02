@@ -1,27 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Logo } from "@/components/shared/logo";
-import { ComingSoon } from "@/components/shared/coming-soon";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignUpForm } from "@/components/auth/sign-up-form";
 
-export const metadata: Metadata = { title: "Sign Up" };
+export const metadata: Metadata = {
+  title: "Sign Up",
+  robots: { index: false, follow: false },
+};
 
-export default function SignUpPage() {
+const googleEnabled =
+  !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
+
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const { callbackUrl } = await searchParams;
+  const dest = callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/classroom";
+
   return (
-    <div className="min-h-dvh">
-      <div className="container-page py-6">
-        <Logo />
-      </div>
-      <ComingSoon
-        title="Create your account"
-        description="Register with your name, phone, and email — then verify via OTP and start learning for free."
-        session="Session 3"
-      />
-      <p className="pb-12 text-center text-sm text-fg-muted">
-        Already have an account?{" "}
-        <Link href="/auth/signin" className="text-brand hover:underline">
-          Sign In
-        </Link>
-      </p>
-    </div>
+    <AuthShell
+      title="Sign Up"
+      subtitle="Create your free account and start learning today."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/auth/signin" className="font-medium text-brand hover:underline">
+            Sign In
+          </Link>
+        </>
+      }
+    >
+      <SignUpForm googleEnabled={googleEnabled} callbackUrl={dest} />
+    </AuthShell>
   );
 }

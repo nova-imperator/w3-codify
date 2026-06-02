@@ -304,7 +304,75 @@ async function main() {
     }
     console.log(`seeded: ${c.title} (${sections.length} sections)`);
   }
+
+  await seedAdminAndDemo();
   console.log("✓ seed complete");
+}
+
+// Admin account + demo students/enrollments/leads so the panel is populated.
+async function seedAdminAndDemo() {
+  const admin = await prisma.user.upsert({
+    where: { phone: "9000000001" },
+    update: { role: "ADMIN", firstName: "Brad", lastName: "Forbes", phoneVerified: true },
+    create: {
+      phone: "9000000001",
+      firstName: "Brad",
+      lastName: "Forbes",
+      email: "bradforbes24@hotmail.com",
+      role: "ADMIN",
+      phoneVerified: true,
+    },
+  });
+  console.log(`admin ready: ${admin.phone} (${admin.role})`);
+
+  const demoStudents = [
+    { phone: "9810000001", firstName: "Priya", lastName: "Sharma", email: "priya.demo@w3codify.com", slug: "machine-learning-deep-learning" },
+    { phone: "9810000002", firstName: "Karthik", lastName: "R", email: "karthik.demo@w3codify.com", slug: "cloud-computing" },
+    { phone: "9810000003", firstName: "Ananya", lastName: "Gupta", email: "ananya.demo@w3codify.com", slug: "cyber-security" },
+    { phone: "9810000004", firstName: "Dev", lastName: "Mehra", email: "dev.demo@w3codify.com", slug: "machine-learning-deep-learning" },
+  ];
+  for (const s of demoStudents) {
+    const user = await prisma.user.upsert({
+      where: { phone: s.phone },
+      update: { firstName: s.firstName, lastName: s.lastName },
+      create: {
+        phone: s.phone,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        email: s.email,
+        phoneVerified: true,
+        role: "STUDENT",
+      },
+    });
+    const course = await prisma.course.findUnique({ where: { slug: s.slug } });
+    if (course) {
+      await prisma.enrollment.upsert({
+        where: { userId_courseId: { userId: user.id, courseId: course.id } },
+        update: {},
+        create: {
+          userId: user.id,
+          courseId: course.id,
+          type: course.priceInr > 0 ? "PAID" : "FREE",
+        },
+      });
+    }
+  }
+  console.log(`demo students: ${demoStudents.length}`);
+
+  const demoLeads = [
+    { id: "lead_demo_1", name: "Rahul Nair", phone: "9820011111", enquiryFor: "Online Course (Website)", message: "Interested in the ML cohort — when's the next batch?", status: "new" },
+    { id: "lead_demo_2", name: "Meera Iyer", phone: "9820022222", enquiryFor: "Online Course (Website)", message: "Do you offer EMI for the Career Track?", status: "contacted" },
+    { id: "lead_demo_3", name: "Sahil Kapoor", phone: "9820033333", enquiryFor: "Offline Course", message: "Looking for weekend batches in Mumbai.", status: "new" },
+    { id: "lead_demo_4", name: "Tanvi Desai", phone: "9820044444", enquiryFor: "Online Course (Website)", message: "Enrolled — thanks for the quick callback!", status: "closed" },
+  ];
+  for (const l of demoLeads) {
+    await prisma.callbackLead.upsert({
+      where: { id: l.id },
+      update: { status: l.status },
+      create: l,
+    });
+  }
+  console.log(`demo leads: ${demoLeads.length}`);
 }
 
 main()
