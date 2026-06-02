@@ -22,3 +22,18 @@ export function formatCompact(n: number) {
     maximumFractionDigits: 1,
   }).format(n);
 }
+
+/** Seconds -> "12h 30m" / "45m" / "0m". */
+export function formatDuration(totalSec: number) {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.round((totalSec % 3600) / 60);
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+/** Discount percent from MRP, or 0. */
+export function discountPercent(priceInr: number, mrpInr: number) {
+  if (!mrpInr || mrpInr <= priceInr) return 0;
+  return Math.round(((mrpInr - priceInr) / mrpInr) * 100);
+}

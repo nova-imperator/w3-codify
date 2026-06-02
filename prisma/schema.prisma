@@ -1,0 +1,295 @@
+// W3Codify — Prisma schema (BUILD_SPEC §7).
+// Built generically; Session 2 seeds the 3 launch courses (§7.1) but the
+// catalog is unlimited and admin-managed from Session 3 on.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Users & auth
+// ----------------------------------------------------------------------------
+model User {
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String?
+  email         String?   @unique
+  phone         String    @unique
+  phoneVerified Boolean   @default(false)
+  emailVerified DateTime?
+  avatarUrl     String?
+  role          Role      @default(STUDENT)
+  bio           String?
+  dateOfBirth   DateTime?
+  city          String?
+  state         String?
+  pincode       String?
+  country       String?
+  consentComms  Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  enrollments Enrollment[]
+  projects    Project[]
+  accounts    Account[]
+  sessions    Session[]
+  aiThreads   AiThread[]
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+// Auth.js (NextAuth v5) Prisma adapter models — wired up in Session 3.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model OtpRequest {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+// ----------------------------------------------------------------------------
+// Catalog
+// ----------------------------------------------------------------------------
+model Course {
+  id           String       @id @default(cuid())
+  slug         String       @unique
+  title        String
+  subtitle     String?
+  description  String
+  thumbnail    String?
+  previewVideo String?
+  priceInr     Int          @default(0) // 0 = free
+  mrpInr       Int?
+  isLive       Boolean      @default(false)
+  level        Level        @default(BEGINNER)
+  status       CourseStatus @default(DRAFT)
+  tags         String[]
+  outcomes     String[]     @default([]) // "What you'll learn"
+  requirements String[]     @default([])
+  rating       Float        @default(0)
+  ratingCount  Int          @default(0)
+  learners     Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  instructors Instructor[] @relation("CourseInstructors")
+  sections    Section[]
+  enrollments Enrollment[]
+
+  @@index([status])
+}
+
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Section {
+  id       String   @id @default(cuid())
+  courseId String
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int
+  lessons  Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id            String        @id @default(cuid())
+  sectionId     String
+  section       Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title         String
+  videoUrl      String?
+  durationSec   Int           @default(0)
+  isFreePreview Boolean       @default(false)
+  order         Int
+  resources     Json?
+  blocks        LessonBlock[]
+
+  @@index([sectionId])
+}
+
+model Instructor {
+  id      String   @id @default(cuid())
+  name    String
+  role    String?
+  bio     String?
+  photo   String?
+  socials Json?
+  courses Course[] @relation("CourseInstructors")
+}
+
+// Rich, ordered lesson content blocks (admin-built from Session 3).
+model LessonBlock {
+  id       String      @id @default(cuid())
+  lessonId String
+  lesson   Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type     BlockType
+  order    Int
+  data     Json
+  mediaId  String?
+  media    MediaAsset? @relation(fields: [mediaId], references: [id])
+
+  @@index([lessonId])
+}
+
+enum BlockType {
+  TEXT
+  IMAGE
+  CODE
+  VIDEO
+  CALLOUT
+  QUIZ
+  FILE
+  EMBED
+}
+
+model MediaAsset {
+  id         String        @id @default(cuid())
+  url        String
+  kind       String        @default("image") // image|video|file
+  alt        String?
+  caption    String?
+  width      Int?
+  height     Int?
+  tags       String[]
+  uploadedBy String?
+  createdAt  DateTime      @default(now())
+  blocks     LessonBlock[]
+}
+
+// ----------------------------------------------------------------------------
+// Enrollments, projects, leads
+// ----------------------------------------------------------------------------
+model Enrollment {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  type      EnrollType   @default(FREE)
+  status    EnrollStatus @default(ACTIVE)
+  progress  Json? // lessonId -> completed
+  paymentId String?
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, courseId])
+}
+
+enum EnrollType {
+  FREE
+  PAID
+}
+
+enum EnrollStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  repoUrl   String?
+  liveUrl   String?
+  status    String   @default("submitted")
+  createdAt DateTime @default(now())
+}
+
+model CallbackLead {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String
+  enquiryFor String
+  message    String?
+  status     String   @default("new")
+  createdAt  DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// AI tutor threads (Session 5)
+// ----------------------------------------------------------------------------
+model AiThread {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String?
+  title     String?
+  createdAt DateTime    @default(now())
+  messages  AiMessage[]
+}
+
+model AiMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    AiThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+}

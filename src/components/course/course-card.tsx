@@ -3,13 +3,13 @@ import { Star, ArrowUpRight, Users } from "lucide-react";
 import { Badge, LiveBadge } from "@/components/ui/badge";
 import { SmartImage } from "@/components/shared/smart-image";
 import { formatINR, formatCompact, cn } from "@/lib/utils";
-import type { Course } from "@/lib/site";
+import type { CourseCardData } from "@/server/courses";
 
 export function CourseCard({
   course,
   className,
 }: {
-  course: Course;
+  course: CourseCardData;
   className?: string;
 }) {
   const discount =
