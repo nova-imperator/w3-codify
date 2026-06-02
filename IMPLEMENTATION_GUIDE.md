@@ -86,9 +86,9 @@ SEO, analytics, Sentry, a11y audit, perf budget, tests. Then deploy per `DEPLOY.
 ## Progress checklist (Claude ticks these as it goes)
 - [x] **S1** Scaffold + design system + `/dev/ui`
 - [x] **S1** Home page — all sections, responsive, Lighthouse ≥ 95
-- [ ] **S2** Prisma schema + RDS connected + migrated
-- [ ] **S2** 3 courses seeded
-- [ ] **S2** Courses list + Single course page
+- [x] **S2** Prisma schema + RDS connected + migrated
+- [x] **S2** 3 courses seeded
+- [x] **S2** Courses list + Single course page
 - [ ] **S3** Auth — Phone-OTP + Google + protected routes
 - [ ] **S3** Admin — course CRUD + curriculum builder
 - [ ] **S3** Admin — rich lesson-block editor + media library
