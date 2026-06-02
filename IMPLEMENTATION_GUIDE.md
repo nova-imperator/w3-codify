@@ -84,8 +84,8 @@ SEO, analytics, Sentry, a11y audit, perf budget, tests. Then deploy per `DEPLOY.
 ---
 
 ## Progress checklist (Claude ticks these as it goes)
-- [ ] **S1** Scaffold + design system + `/dev/ui`
-- [ ] **S1** Home page — all sections, responsive, Lighthouse ≥ 95
+- [x] **S1** Scaffold + design system + `/dev/ui`
+- [x] **S1** Home page — all sections, responsive, Lighthouse ≥ 95
 - [ ] **S2** Prisma schema + RDS connected + migrated
 - [ ] **S2** 3 courses seeded
 - [ ] **S2** Courses list + Single course page
