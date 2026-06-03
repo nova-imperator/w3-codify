@@ -93,9 +93,9 @@ SEO, analytics, Sentry, a11y audit, perf budget, tests. Then deploy per `DEPLOY.
 - [x] **S3** Admin — course CRUD + curriculum builder
 - [x] **S3** Admin — rich lesson-block editor + media library
 - [x] **S3** Admin — leads + students
-- [ ] **S4** Request Callback (modal + leads)
-- [ ] **S4** Profile — all sections + avatar to S3
-- [ ] **S4** Enrollment + Razorpay
+- [x] **S4** Request Callback (modal + leads)
+- [x] **S4** Profile — all sections + avatar to S3
+- [x] **S4** Enrollment + Razorpay
 - [ ] **S5** Classroom dashboard + course player
 - [ ] **S5** AI Tutor — chat + explain/fix + project review + home teaser
 - [ ] **S6** SEO + analytics + Sentry + tests + a11y/perf pass
