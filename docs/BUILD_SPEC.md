@@ -235,8 +235,12 @@ A long, scroll‑driven narrative. Sections, in order:
    - ⚠️ **Remove the stacked-avatar row** (the "A S R P K" letter circles — they render as broken
      placeholders). Keep the social proof as a **plain text stat** only: "1M+ students learning in
      our mastery programs" (no avatar cluster), or drop it into the stat band below.
-   - Background: animated aurora/shader gradient or Spline 3D object (lazy, non‑blocking),
-     subtle grid, floating code/AI motifs. Parallax on scroll.
+   - ⭐ **Background effect (make it striking):** the hero MUST have a living animated
+     background — an **indigo→cyan aurora / animated gradient‑mesh / subtle shader or
+     particle field**, with a faint grid and slow parallax drift. It should feel premium and
+     alive (think Linear/Vercel hero), GPU‑light, lazy‑loaded so it never blocks LCP, and it
+     **must respect `prefers-reduced-motion`** (fall back to a static gradient). On‑brand
+     indigo/cyan only — no orange. This is a priority polish item.
 3. **Trust strip / stat band:** animated counters — `600k+ Subscribers`, `1M+ Learners`,
    placement %, avg package — with a faint "make it happen" kinetic text behind.
 4. **AI Tutor teaser (our differentiator):** an interactive mini‑demo — user types a
@@ -252,14 +256,19 @@ A long, scroll‑driven narrative. Sections, in order:
    salary/placement stats, 2–3 success snapshots.
 9. **Instructor spotlight** — mentor cards with photo, role, socials.
 10. **Testimonials** — auto‑scrolling marquee of student quotes + avatars + ratings.
-11. **Pricing / cohorts** — comparison of Free vs Paid cohorts, "Most Popular" highlight.
+11. ~~Pricing / cohorts~~ — **REMOVED.** Everything is FREE (launch offer), so the 3‑tier
+    pricing section is gone. Do not render it. (Re‑introduce only if/when paid cohorts return.)
 12. **FAQ** — accordion.
-13. **Big CTA band** — gradient panel, "Start learning for free", phone capture.
+13. ~~Big CTA band~~ — **REMOVED / replaced.** Drop the old orange phone‑capture gradient band.
+    Replace with EITHER (a) nothing (let the FAQ flow into the footer), OR (b) a clean on‑brand
+    **banner** — a slim indigo/cyan panel or a **banner image** (placeholder until art is ready,
+    name it `public/images/home/cta-banner.png`) with a single **Sign In** CTA. No phone capture.
 14. **Footer** — rich: brand blurb, course links, company, legal, socials, newsletter,
     "Made in India" line. Subtle top border glow.
 
 > Copy may be improved by you, but keep the boxed‑accent‑word hero device and the
 > outcome‑driven tone. Every section must scroll‑reveal and be mobile‑perfect.
+> **Removed sections:** Pricing (#11) and the old CTA phone‑capture band (#13).
 
 ### 6.2 COURSES `/courses`
 - Section heading: eyebrow `COURSES`, title **"Level Up Your Coding Skills With Expert‑Led Courses"**.
