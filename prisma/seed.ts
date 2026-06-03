@@ -203,7 +203,7 @@ const COURSES: CourseSeed[] = [
     thumbnail: "/images/courses/cyber.png",
     tags: ["Pentesting", "OWASP", "Blue Team"],
     level: Level.ADVANCED,
-    isLive: false,
+    isLive: true,
     priceInr: 0, // Launch offer — free for now
     mrpInr: 38999,
     rating: 4.9,

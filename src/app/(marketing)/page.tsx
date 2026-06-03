@@ -12,7 +12,9 @@ import { Pricing } from "@/components/marketing/pricing";
 import { Faq } from "@/components/marketing/faq";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { OrganizationJsonLd } from "@/components/shared/json-ld";
+import type { Metadata } from "next";
 
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 export const revalidate = 300; // ISR — featured courses come from the DB
 
 export default function HomePage() {
