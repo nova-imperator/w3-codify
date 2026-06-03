@@ -44,6 +44,10 @@
   --animate-marquee: marquee 40s linear infinite;
   --animate-marquee-reverse: marquee-reverse 40s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
+  --animate-drift-a: driftA 24s ease-in-out infinite alternate;
+  --animate-drift-b: driftB 30s ease-in-out infinite alternate;
+  --animate-drift-c: driftC 34s ease-in-out infinite alternate;
+  --animate-mesh-spin: meshSpin 64s linear infinite;
 }
 
 @keyframes marquee {
@@ -57,6 +61,22 @@
 @keyframes aurora {
   0% { transform: translate3d(-6%, -4%, 0) scale(1); }
   100% { transform: translate3d(6%, 4%, 0) scale(1.15); }
+}
+@keyframes driftA {
+  0% { transform: translate3d(-8%, -6%, 0) scale(1); }
+  100% { transform: translate3d(10%, 8%, 0) scale(1.2); }
+}
+@keyframes driftB {
+  0% { transform: translate3d(6%, -4%, 0) scale(1.05); }
+  100% { transform: translate3d(-8%, 10%, 0) scale(0.92); }
+}
+@keyframes driftC {
+  0% { transform: translate3d(-4%, 8%, 0) scale(0.9); }
+  100% { transform: translate3d(8%, -6%, 0) scale(1.18); }
+}
+@keyframes meshSpin {
+  from { transform: rotate(0deg) scale(1.4); }
+  to { transform: rotate(360deg) scale(1.4); }
 }
 @keyframes accordion-down {
   from { height: 0; }

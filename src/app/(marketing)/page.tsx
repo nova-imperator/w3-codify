@@ -8,7 +8,6 @@ import { Roadmap } from "@/components/marketing/roadmap";
 import { Outcomes } from "@/components/marketing/outcomes";
 import { Instructors } from "@/components/marketing/instructors";
 import { Testimonials } from "@/components/marketing/testimonials";
-import { Pricing } from "@/components/marketing/pricing";
 import { Faq } from "@/components/marketing/faq";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { OrganizationJsonLd } from "@/components/shared/json-ld";
@@ -31,7 +30,6 @@ export default function HomePage() {
       <Outcomes />
       <Instructors />
       <Testimonials />
-      <Pricing />
       <Faq />
       <CtaBand />
     </>

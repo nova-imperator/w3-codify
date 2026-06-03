@@ -1,9 +1,16 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { AuroraBackground } from "./aurora-background";
+
+// The animated layer is lazy + client-only so it never blocks the LCP headline.
+// The static base below is server-rendered and is also the reduced-motion fallback.
+const HeroBackground = dynamic(
+  () => import("./hero-background").then((m) => m.HeroBackground),
+  { ssr: false },
+);
 
 const container = {
   hidden: {},
@@ -25,15 +32,28 @@ export function Hero() {
     offset: ["start start", "end start"],
   });
   const y = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0]);
 
   return (
     <section
       ref={ref}
-      className="relative flex min-h-[100svh] items-center justify-center overflow-hidden pb-16 pt-28 md:pt-32"
+      className="relative flex min-h-[100svh] items-center justify-center overflow-hidden pb-20 pt-28 md:pt-36"
     >
+      {/* Background — slow parallax drift on scroll */}
       <motion.div style={{ y, opacity }} className="absolute inset-0">
-        <AuroraBackground />
+        {/* Static base (SSR): on-brand wash + grid + vignette. Always painted. */}
+        <div aria-hidden className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(109,94,246,0.20),transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_85%_20%,rgba(34,211,238,0.12),transparent_60%)]" />
+          <div className="bg-grid absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_center,#000_28%,transparent_72%)]" />
+        </div>
+        {/* Animated richness (lazy, client-only, reduced-motion aware) */}
+        <HeroBackground />
+        {/* Vignette keeps the headline crisp over everything */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_38%,var(--bg)_92%)]"
+        />
       </motion.div>
 
       <motion.div
@@ -43,7 +63,7 @@ export function Hero() {
         className="container-page relative z-10 flex flex-col items-center text-center"
       >
         <motion.div variants={item}>
-          <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.25em] text-brand-glow">
+          <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-brand-glow sm:text-xs">
             <Sparkles className="size-3.5" />
             Learn. Build. Get Placed.
           </span>
@@ -51,7 +71,7 @@ export function Hero() {
 
         <motion.h1
           variants={item}
-          className="mt-6 max-w-4xl text-[length:var(--text-display-lg)] font-semibold leading-[1.04]"
+          className="mx-auto mt-7 max-w-4xl text-balance text-[length:var(--text-display-lg)] font-semibold leading-[1.05] tracking-[-0.02em]"
         >
           Become the software engineer that{" "}
           <AccentWord>companies</AccentWord> want to hire.
