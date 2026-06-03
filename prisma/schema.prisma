@@ -132,8 +132,23 @@ model Course {
   instructors Instructor[] @relation("CourseInstructors")
   sections    Section[]
   enrollments Enrollment[]
+  assessments Assessment[]
 
   @@index([status])
+}
+
+// End-of-tier mini-assessments + end-of-course final assessment (§6.8.1).
+model Assessment {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tier      String? // "Basics" | "Advanced" | "GOD"; null = final assessment
+  title     String
+  questions Json // [{ q, options: string[], answer: number, why: string }]
+  passPct   Int      @default(70)
+  order     Int      @default(0)
+
+  @@index([courseId])
 }
 
 enum Level {

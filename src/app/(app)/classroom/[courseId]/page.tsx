@@ -6,6 +6,7 @@ import { getCoursePlayer } from "@/server/classroom";
 import { CoursePlayer } from "@/components/classroom/course-player";
 import { Button } from "@/components/ui/button";
 import type { RenderBlock } from "@/components/classroom/lesson-blocks";
+import type { AssessmentData } from "@/components/classroom/assessment-panel";
 
 export const metadata: Metadata = { title: "Classroom", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -53,12 +54,21 @@ export default async function CoursePlayerPage({
     })),
   }));
 
+  const assessments = course.assessments.map<AssessmentData>((a) => ({
+    id: a.id,
+    title: a.title,
+    tier: a.tier,
+    passPct: a.passPct,
+    questions: (a.questions as AssessmentData["questions"]) ?? [],
+  }));
+
   return (
     <CoursePlayer
       courseId={course.id}
       courseTitle={course.title}
       courseSlug={course.slug}
       sections={sections}
+      assessments={assessments}
       initialProgress={progress}
     />
   );

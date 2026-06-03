@@ -1,10 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
 
-function progressMap(progress: unknown): Record<string, boolean> {
-  return progress && typeof progress === "object"
-    ? (progress as Record<string, boolean>)
-    : {};
+type LessonProgress = { completed?: boolean; videoDone?: boolean; score?: { correct: number; total: number } };
+type Progress = {
+  lessons?: Record<string, LessonProgress>;
+  assessments?: Record<string, { score: number; total: number; passed: boolean; at: string }>;
+  certificate?: { at: string; scorePct: number } | null;
+};
+
+function readProgress(progress: unknown): Progress {
+  return progress && typeof progress === "object" ? (progress as Progress) : {};
+}
+
+/** Completed lesson ids — supports the new {lessons:{id:{completed}}} shape and legacy {id:true}. */
+function completedLessonIds(progress: unknown): Set<string> {
+  const p = readProgress(progress);
+  const ids = new Set<string>();
+  if (p.lessons) {
+    for (const [id, lp] of Object.entries(p.lessons)) if (lp?.completed) ids.add(id);
+  }
+  // legacy flat shape
+  for (const [k, v] of Object.entries(progress && typeof progress === "object" ? progress : {})) {
+    if (k !== "lessons" && k !== "assessments" && k !== "certificate" && v === true) ids.add(k);
+  }
+  return ids;
 }
 
 /** Enrolled courses + progress for the classroom dashboard (§6.8). */
@@ -27,8 +46,8 @@ export async function getMyClassroom() {
 
   return enrollments.map((e) => {
     const lessonIds = e.course.sections.flatMap((s) => s.lessons.map((l) => l.id));
-    const done = progressMap(e.progress);
-    const completed = lessonIds.filter((id) => done[id]).length;
+    const done = completedLessonIds(e.progress);
+    const completed = lessonIds.filter((id) => done.has(id)).length;
     return {
       courseId: e.course.id,
       slug: e.course.slug,
@@ -60,6 +79,7 @@ export async function getCoursePlayer(courseId: string) {
     where: { id: courseId },
     include: {
       instructors: { select: { name: true, role: true } },
+      assessments: { orderBy: { order: "asc" } },
       sections: {
         orderBy: { order: "asc" },
         include: {
@@ -76,6 +96,6 @@ export async function getCoursePlayer(courseId: string) {
   return {
     status: "ok" as const,
     course,
-    progress: progressMap(enrollment?.progress),
+    progress: readProgress(enrollment?.progress),
   };
 }
