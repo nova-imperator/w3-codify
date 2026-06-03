@@ -209,7 +209,7 @@ function Field({
       </label>
       {children}
       {error && (
-        <span className={cn("text-xs text-[#ff6b6b]")} role="alert">
+        <span className={cn("text-xs text-[#fb7185]")} role="alert">
           {error}
         </span>
       )}

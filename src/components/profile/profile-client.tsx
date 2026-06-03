@@ -436,7 +436,7 @@ function ProjectItem({
             {reviewing ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
             {review ? "Re-review" : "AI review"}
           </Button>
-          <button onClick={onRemove} aria-label="Delete project" className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]">
+          <button onClick={onRemove} aria-label="Delete project" className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#fb7185]">
             <Trash2 className="size-4" />
           </button>
         </div>

@@ -67,7 +67,7 @@ export function Roadmap() {
 
         <Reveal delayIndex={ROADMAP.length}>
           <div className="relative z-10 mt-10 flex items-center gap-3 md:justify-center">
-            <span className="bg-accent-grad grid size-14 place-items-center rounded-2xl text-white shadow-[0_8px_30px_-8px_rgba(255,90,31,0.6)]">
+            <span className="bg-accent-grad grid size-14 place-items-center rounded-2xl text-white shadow-[0_8px_30px_-8px_rgba(109,94,246,0.6)]">
               <Check className="size-6" strokeWidth={3} />
             </span>
             <p className="font-display text-lg font-semibold">

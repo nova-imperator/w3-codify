@@ -23,7 +23,6 @@ const COLUMNS = [
     title: "Company",
     links: [
       { label: "About Us", href: "/about" },
-      { label: "Bootcamp", href: "/bootcamp" },
       { label: "Classroom", href: "/classroom" },
       { label: "Sign In", href: "/auth/signin" },
     ],

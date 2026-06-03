@@ -151,13 +151,13 @@ function Quiz({ data }: { data: Record<string, unknown> }) {
                 "flex items-center justify-between gap-3 rounded-[10px] border px-4 py-2.5 text-left text-sm transition-colors",
                 !show && "border-border bg-bg-subtle hover:border-brand/40",
                 show && isCorrect && "border-success/50 bg-success/10 text-fg",
-                show && isPicked && !isCorrect && "border-[#ff3b3b]/50 bg-[#ff3b3b]/10 text-fg",
+                show && isPicked && !isCorrect && "border-[#fb7185]/50 bg-[#fb7185]/10 text-fg",
                 show && !isPicked && !isCorrect && "border-border opacity-60",
               )}
             >
               {opt}
               {show && isCorrect && <Check className="size-4 text-success" />}
-              {show && isPicked && !isCorrect && <X className="size-4 text-[#ff6b6b]" />}
+              {show && isPicked && !isCorrect && <X className="size-4 text-[#fb7185]" />}
             </button>
           );
         })}

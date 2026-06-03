@@ -18,7 +18,7 @@ export function AuthShell({
       <div className="bg-grid absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_center,#000_10%,transparent_70%)]" />
       <div
         aria-hidden
-        className="animate-aurora absolute -top-1/4 left-1/2 h-[60vh] w-[60vh] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,90,31,0.18),transparent_60%)] blur-3xl"
+        className="animate-aurora absolute -top-1/4 left-1/2 h-[60vh] w-[60vh] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(109,94,246,0.18),transparent_60%)] blur-3xl"
       />
       <div className="relative w-full max-w-md">
         <div className="mb-8 flex justify-center">

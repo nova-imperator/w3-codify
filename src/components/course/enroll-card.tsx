@@ -154,7 +154,7 @@ export function EnrollCard({
         description: order.courseTitle,
         order_id: order.orderId,
         prefill: order.prefill,
-        theme: { color: "#FF5A1F" },
+        theme: { color: "#6D5EF6" },
         handler: async (resp: Record<string, string>) => {
           const v = await fetch("/api/payments/razorpay/verify", {
             method: "POST",

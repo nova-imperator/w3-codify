@@ -20,8 +20,8 @@ export default function GlobalError({
     <html lang="en">
       <body
         style={{
-          background: "#0A0A0B",
-          color: "#F5F5F7",
+          background: "#0A0B14",
+          color: "#EDEEF7",
           fontFamily: "system-ui, sans-serif",
           minHeight: "100vh",
           display: "grid",
@@ -32,14 +32,14 @@ export default function GlobalError({
       >
         <div style={{ maxWidth: 420 }}>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 600 }}>Something went wrong</h1>
-          <p style={{ color: "#A1A1AA", marginTop: "0.75rem" }}>
+          <p style={{ color: "#9AA0C0", marginTop: "0.75rem" }}>
             An unexpected error occurred. Please try again — our team has been notified.
           </p>
           <button
             onClick={reset}
             style={{
               marginTop: "1.5rem",
-              background: "#FF5A1F",
+              background: "#6D5EF6",
               color: "#fff",
               border: "none",
               borderRadius: 12,

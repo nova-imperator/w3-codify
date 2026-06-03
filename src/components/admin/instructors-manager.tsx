@@ -74,7 +74,7 @@ export function InstructorsManager({ instructors }: { instructors: Instructor[] 
                       </button>
                     }
                   />
-                  <button onClick={() => remove(i.id, i.name, i.courses)} aria-label="Delete" className="grid size-8 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]">
+                  <button onClick={() => remove(i.id, i.name, i.courses)} aria-label="Delete" className="grid size-8 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#fb7185]">
                     <Trash2 className="size-4" />
                   </button>
                 </div>

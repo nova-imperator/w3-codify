@@ -9,13 +9,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-brand text-white shadow-[0_8px_30px_-8px_rgba(255,90,31,0.5)] hover:bg-brand-600 hover:shadow-[0_10px_40px_-8px_rgba(255,90,31,0.65)]",
+          "bg-brand text-white shadow-[0_8px_30px_-8px_rgba(109,94,246,0.5)] hover:bg-brand-600 hover:shadow-[0_10px_40px_-8px_rgba(109,94,246,0.65)]",
         secondary:
           "border border-border-strong bg-bg-elevated text-fg hover:bg-bg-subtle hover:border-fg-faint",
         ghost: "text-fg hover:bg-bg-subtle",
         link: "text-brand underline-offset-4 hover:underline",
         outline:
           "border border-brand/40 text-brand hover:bg-brand/10 hover:border-brand",
+        gradient:
+          "bg-accent-grad text-white border-0 shadow-[0_8px_30px_-8px_rgba(109,94,246,0.6)] transition-[filter,box-shadow] hover:brightness-110 hover:shadow-[0_10px_40px_-8px_rgba(34,211,238,0.55)]",
       },
       size: {
         sm: "h-9 px-3.5",

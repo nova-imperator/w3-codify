@@ -20,15 +20,15 @@ export type CourseCardData = {
 };
 
 const ACCENTS: Record<string, string> = {
-  "machine-learning-deep-learning": "from-[#ff7a3c] to-[#e0360a]",
-  "cloud-computing": "from-[#ffa05a] to-[#ff5a1f]",
-  "cyber-security": "from-[#ff6a4d] to-[#c83c0e]",
+  "machine-learning-deep-learning": "from-[#8b7dff] to-[#22d3ee]",
+  "cloud-computing": "from-[#6d5ef6] to-[#22d3ee]",
+  "cyber-security": "from-[#8b7dff] to-[#5a4be0]",
 };
 const ACCENT_POOL = [
-  "from-[#ff7a3c] to-[#e0360a]",
-  "from-[#ffa05a] to-[#ff5a1f]",
-  "from-[#ff6a4d] to-[#c83c0e]",
-  "from-[#ff9152] to-[#d8410f]",
+  "from-[#8b7dff] to-[#22d3ee]",
+  "from-[#6d5ef6] to-[#22d3ee]",
+  "from-[#8b7dff] to-[#5a4be0]",
+  "from-[#6d5ef6] to-[#8b7dff]",
 ];
 
 /** Deterministic accent for any course (seeded ones get their signature one). */

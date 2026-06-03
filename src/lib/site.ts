@@ -16,7 +16,6 @@ export const SITE = {
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Courses", href: "/courses" },
-  { label: "Bootcamp", href: "/bootcamp" },
   { label: "About Us", href: "/about" },
 ] as const;
 
@@ -53,7 +52,7 @@ export const FEATURED_COURSES: Course[] = [
     learners: 18420,
     instructor: "Dr. Aarav Mehta",
     image: "/images/courses/ml-dl.png",
-    accent: "from-[#ff7a3c] to-[#e0360a]",
+    accent: "from-[#8b7dff] to-[#22d3ee]",
   },
   {
     slug: "cloud-computing",
@@ -70,7 +69,7 @@ export const FEATURED_COURSES: Course[] = [
     learners: 14210,
     instructor: "Sana Kapoor",
     image: "/images/courses/cloud.png",
-    accent: "from-[#ffa05a] to-[#ff5a1f]",
+    accent: "from-[#6d5ef6] to-[#22d3ee]",
   },
   {
     slug: "cyber-security",
@@ -87,7 +86,7 @@ export const FEATURED_COURSES: Course[] = [
     learners: 11030,
     instructor: "Rohan Verma",
     image: "/images/courses/cyber.png",
-    accent: "from-[#ff6a4d] to-[#c83c0e]",
+    accent: "from-[#8b7dff] to-[#5a4be0]",
   },
 ];
 

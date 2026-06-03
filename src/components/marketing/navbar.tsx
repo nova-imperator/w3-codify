@@ -81,16 +81,11 @@ export function Navbar() {
           {user ? (
             <UserMenu user={user} />
           ) : (
-            <>
-              <Button asChild variant="ghost" size="sm">
+            <Magnetic>
+              <Button asChild variant="gradient" size="sm">
                 <Link href="/auth/signin">Sign In</Link>
               </Button>
-              <Magnetic>
-                <Button asChild size="sm">
-                  <Link href="/auth/signup">Start Journey</Link>
-                </Button>
-              </Magnetic>
-            </>
+            </Magnetic>
           )}
         </div>
 
@@ -156,18 +151,11 @@ export function Navbar() {
                     </Button>
                   </SheetClose>
                 ) : (
-                  <>
-                    <SheetClose asChild>
-                      <Button asChild variant="ghost" size="lg" className="w-full">
-                        <Link href="/auth/signin">Sign In</Link>
-                      </Button>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Button asChild size="lg" className="w-full">
-                        <Link href="/auth/signup">Start Journey</Link>
-                      </Button>
-                    </SheetClose>
-                  </>
+                  <SheetClose asChild>
+                    <Button asChild variant="gradient" size="lg" className="w-full">
+                      <Link href="/auth/signin">Sign In</Link>
+                    </Button>
+                  </SheetClose>
                 )}
               </div>
             </SheetContent>

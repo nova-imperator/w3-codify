@@ -1,33 +1,35 @@
 /* ============================================================
    W3Codify — Design Tokens (BUILD_SPEC §5.1–5.3)
-   Dark, cinematic, high-contrast with a molten-orange accent.
+   Dark, cinematic, high-contrast — "Indigo & Cyan" (primary indigo-violet,
+   accent cyan). No orange anywhere.
    Exposed as CSS variables; mapped into Tailwind via @theme in globals.css.
    ============================================================ */
 
 :root {
   /* Surfaces */
-  --bg: #0a0a0b; /* near-black canvas */
-  --bg-elevated: #121214; /* cards */
-  --bg-subtle: #1a1a1e; /* inputs, hover */
-  --border: #26262b;
-  --border-strong: #34343b;
+  --bg: #0a0b14; /* near-black indigo canvas */
+  --bg-elevated: #14162b; /* cards */
+  --bg-subtle: #1b1e36; /* inputs, hover */
+  --border: #2a2e4a;
+  --border-strong: #3a3f63;
 
   /* Text */
-  --fg: #f5f5f7; /* primary text */
-  --fg-muted: #a1a1aa; /* secondary text */
-  --fg-faint: #8b8b94; /* tertiary / captions — lightened for WCAG AA contrast */
+  --fg: #edeef7; /* primary text */
+  --fg-muted: #9aa0c0; /* secondary text */
+  --fg-faint: #7a80a8; /* tertiary / captions — meets WCAG AA on the dark canvas */
 
-  /* Brand */
-  --brand: #ff5a1f; /* primary orange */
-  --brand-600: #e64a12;
-  --brand-700: #c83c0e;
-  --brand-glow: #ff7a3c;
-  --accent-grad: linear-gradient(135deg, #ff7a3c 0%, #ff5a1f 50%, #e0360a 100%);
+  /* Brand (indigo-violet) */
+  --brand: #6d5ef6; /* primary indigo-violet (CTAs) */
+  --brand-600: #5a4be0; /* hover/pressed */
+  --brand-700: #4a3fc0;
+  --brand-glow: #8b7dff; /* glow/lighten */
+  --accent: #22d3ee; /* cyan highlights */
+  --accent-grad: linear-gradient(135deg, #8b7dff 0%, #6d5ef6 45%, #22d3ee 100%);
 
   /* Semantic */
-  --success: #3dd68c;
-  --live: #ff3b3b; /* "LIVE" badge */
-  --ring: #ff5a1f;
+  --success: #34d399;
+  --live: #fb7185; /* "LIVE" badge (rose, reads on dark) */
+  --ring: #6d5ef6;
 
   /* Radius (§5.3) */
   --radius-sm: 8px;
@@ -42,5 +44,5 @@
 
   /* Elevation (soft glows, not heavy shadows) */
   --shadow-glow: 0 0 0 1px var(--border), 0 8px 40px -12px rgba(0, 0, 0, 0.8);
-  --shadow-brand: 0 8px 30px -8px rgba(255, 90, 31, 0.45);
+  --shadow-brand: 0 8px 30px -8px rgba(109, 94, 246, 0.45);
 }

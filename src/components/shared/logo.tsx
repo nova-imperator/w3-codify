@@ -15,7 +15,7 @@ export function Logo({
       aria-label="W3Codify home"
       className={cn("group inline-flex items-center gap-2.5", className)}
     >
-      <span className="bg-accent-grad relative grid size-9 place-items-center rounded-[10px] shadow-[0_4px_18px_-4px_rgba(255,90,31,0.6)]">
+      <span className="bg-accent-grad relative grid size-9 place-items-center rounded-[10px] shadow-[0_4px_18px_-4px_rgba(109,94,246,0.6)]">
         <svg
           viewBox="0 0 24 24"
           className="size-5 text-white"

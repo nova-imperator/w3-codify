@@ -115,7 +115,7 @@ export function SignInForm({
         </p>
         {devCode && <DevCodeNotice code={devCode} onUse={(c) => { setCode(c); verify(c); }} />}
         <OtpInput value={code} onChange={setCode} onComplete={verify} disabled={loading} />
-        {error && <p className="text-sm text-[#ff6b6b]" role="alert">{error}</p>}
+        {error && <p className="text-sm text-[#fb7185]" role="alert">{error}</p>}
         <Button size="lg" disabled={loading || code.length !== 6} onClick={() => verify()}>
           {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck className="size-4" />}
           Verify & sign in
@@ -152,7 +152,7 @@ export function SignInForm({
               aria-invalid={!!error}
             />
           </div>
-          {error && <p className="text-sm text-[#ff6b6b]" role="alert">{error}</p>}
+          {error && <p className="text-sm text-[#fb7185]" role="alert">{error}</p>}
         </div>
         <Button type="submit" size="lg" disabled={loading}>
           {loading ? <Loader2 className="animate-spin" /> : <ArrowRight className="size-4" />}

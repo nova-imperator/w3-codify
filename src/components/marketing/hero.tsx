@@ -1,20 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Magnetic } from "@/components/ui/magnetic";
+import { Sparkles } from "lucide-react";
 import { AuroraBackground } from "./aurora-background";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
-const AVATARS = ["A", "S", "R", "P", "K"];
 
 const container = {
   hidden: {},
@@ -62,10 +51,10 @@ export function Hero() {
 
         <motion.h1
           variants={item}
-          className="mt-6 max-w-4xl text-[length:var(--text-display-lg)] font-semibold leading-[1.02]"
+          className="mt-6 max-w-4xl text-[length:var(--text-display-lg)] font-semibold leading-[1.04]"
         >
           Become the software engineer that{" "}
-          <BoxedWord>companies</BoxedWord> want to hire.
+          <AccentWord>companies</AccentWord> want to hire.
         </motion.h1>
 
         <motion.p
@@ -76,41 +65,13 @@ export function Hero() {
           code, fixes your errors, and answers your doubts — 24/7.
         </motion.p>
 
-        <motion.div
+        <motion.p
           variants={item}
-          className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
+          className="mt-8 text-sm text-fg-muted sm:text-base"
         >
-          <Magnetic strength={0.4}>
-            <Button asChild size="lg" className="group">
-              <Link href="/auth/signup">
-                Start Journey
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-          </Magnetic>
-          <WatchDemo />
-        </motion.div>
-
-        <motion.div
-          variants={item}
-          className="mt-12 flex items-center gap-4"
-        >
-          <div className="flex -space-x-3">
-            {AVATARS.map((a, i) => (
-              <span
-                key={a}
-                className="grid size-9 place-items-center rounded-full border-2 border-bg bg-bg-subtle text-xs font-semibold text-fg"
-                style={{ zIndex: AVATARS.length - i }}
-              >
-                {a}
-              </span>
-            ))}
-          </div>
-          <p className="text-left text-sm text-fg-muted">
-            <span className="font-semibold text-fg">1M+ students</span> learning
-            in our mastery programs
-          </p>
-        </motion.div>
+          <span className="font-semibold text-fg">1M+ students</span> learning in
+          our mastery programs
+        </motion.p>
       </motion.div>
 
       {/* scroll cue */}
@@ -132,63 +93,22 @@ export function Hero() {
   );
 }
 
-/** The boxed/outlined brand accent word with an animated draw-on border (§6.1.2). */
-function BoxedWord({ children }: { children: React.ReactNode }) {
+/**
+ * Hero accent word (§6.1.2) — the word rendered in the indigo→cyan gradient
+ * with a clean gradient underline that draws on. Pure inline treatment (no box),
+ * so it never breaks and stays crisp at 360 / 768 / 1440px.
+ */
+function AccentWord({ children }: { children: React.ReactNode }) {
   return (
-    <span className="relative inline-block whitespace-nowrap px-2 text-brand">
-      {children}
-      <motion.svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
+    <span className="relative inline-block whitespace-nowrap">
+      <span className="text-gradient">{children}</span>
+      <motion.span
         aria-hidden
-      >
-        <motion.rect
-          x="1.5"
-          y="6"
-          width="97"
-          height="88"
-          rx="8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          vectorEffect="non-scaling-stroke"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 1, delay: 0.9, ease: "easeInOut" }}
-        />
-      </motion.svg>
+        className="bg-accent-grad absolute -bottom-[0.06em] left-0 h-[0.09em] w-full origin-left rounded-full"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 0.9, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      />
     </span>
-  );
-}
-
-function WatchDemo() {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="secondary" size="lg" className="group">
-          <span className="grid size-6 place-items-center rounded-full bg-brand/15 text-brand transition-colors group-hover:bg-brand group-hover:text-white">
-            <Play className="size-3 fill-current" />
-          </span>
-          Watch Demo
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl border-border-strong p-0">
-        <DialogTitle className="sr-only">W3Codify demo video</DialogTitle>
-        <div className="relative aspect-video w-full overflow-hidden rounded-[20px] bg-black">
-          <div className="absolute inset-0 grid place-items-center bg-bg-elevated">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <span className="grid size-16 place-items-center rounded-full bg-white/10 backdrop-blur">
-                <Play className="size-7 fill-white text-white" />
-              </span>
-              <p className="text-sm text-fg-muted">
-                Demo reel coming soon — Mux-powered player lands in the
-                classroom milestone.
-              </p>
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

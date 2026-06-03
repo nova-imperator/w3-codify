@@ -25,7 +25,7 @@ export function Pricing() {
                 className={cn(
                   "relative flex h-full flex-col gap-6 rounded-[20px] border p-7 transition-colors",
                   plan.highlight
-                    ? "border-brand/50 bg-bg-elevated shadow-[0_30px_80px_-40px_rgba(255,90,31,0.5)]"
+                    ? "border-brand/50 bg-bg-elevated shadow-[0_30px_80px_-40px_rgba(109,94,246,0.5)]"
                     : "border-border bg-bg-elevated",
                 )}
               >

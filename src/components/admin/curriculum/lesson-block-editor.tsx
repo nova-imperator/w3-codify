@@ -119,7 +119,7 @@ export function LessonBlockEditor({
                 <ChevronDown className="size-4" />
               </IconBtn>
               <IconBtn label="Delete block" onClick={() => remove(block.id)}>
-                <Trash2 className="size-4 text-[#ff6b6b]" />
+                <Trash2 className="size-4 text-[#fb7185]" />
               </IconBtn>
             </div>
           </div>

@@ -30,6 +30,11 @@ export const authConfig = {
       const role = auth?.user?.role;
       const isLoggedIn = !!auth?.user;
 
+      // Bootcamp removed from the IA (§4) — exact 301 → /courses.
+      if (pathname === "/bootcamp" || pathname.startsWith("/bootcamp/")) {
+        return NextResponse.redirect(new URL("/courses", request.nextUrl), 301);
+      }
+
       if (pathname.startsWith("/admin")) {
         if (role === "ADMIN") return true;
         // Logged-in non-admin -> home; anonymous -> sign in (with callback).

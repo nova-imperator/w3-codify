@@ -113,7 +113,7 @@ export function SignUpForm({
         </p>
         {devCode && <DevCodeNotice code={devCode} onUse={(c) => { setCode(c); verify(c); }} />}
         <OtpInput value={code} onChange={setCode} onComplete={verify} disabled={loading} />
-        {error && <p className="text-sm text-[#ff6b6b]" role="alert">{error}</p>}
+        {error && <p className="text-sm text-[#fb7185]" role="alert">{error}</p>}
         <Button size="lg" disabled={loading || code.length !== 6} onClick={() => verify()}>
           {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck className="size-4" />}
           Verify & create account
@@ -157,7 +157,7 @@ export function SignUpForm({
           I agree to receive communications from W3Codify via WhatsApp, SMS, email, and phone calls, even if registered under DND/NDNC.
         </label>
 
-        {error && <p className="text-sm text-[#ff6b6b]" role="alert">{error}</p>}
+        {error && <p className="text-sm text-[#fb7185]" role="alert">{error}</p>}
 
         <Button type="submit" size="lg" disabled={loading}>
           {loading ? <Loader2 className="animate-spin" /> : <ArrowRight className="size-4" />}

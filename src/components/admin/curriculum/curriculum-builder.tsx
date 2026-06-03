@@ -173,7 +173,7 @@ function SectionCard({
         <span className="hidden whitespace-nowrap text-xs text-fg-faint sm:inline">
           {section.lessons.length} lessons · {formatDuration(totalSec)}
         </span>
-        <button onClick={onDelete} aria-label="Delete section" className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]">
+        <button onClick={onDelete} aria-label="Delete section" className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#fb7185]">
           <Trash2 className="size-4" />
         </button>
       </div>
@@ -264,7 +264,7 @@ function LessonRow({
         <span className="hidden items-center gap-1 text-xs text-fg-faint sm:inline-flex">
           <Clock className="size-3" /> {formatDuration(lesson.durationSec)}
         </span>
-        <button onClick={remove} aria-label="Delete lesson" className="grid size-8 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]">
+        <button onClick={remove} aria-label="Delete lesson" className="grid size-8 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#fb7185]">
           <Trash2 className="size-4" />
         </button>
       </div>

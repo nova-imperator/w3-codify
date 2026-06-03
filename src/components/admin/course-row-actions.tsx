@@ -77,7 +77,7 @@ export function CourseRowActions({
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={remove} className="text-[#ff6b6b] focus:bg-[#ff3b3b]/10">
+          <DropdownMenuItem onClick={remove} className="text-[#fb7185] focus:bg-[#fb7185]/10">
             <Trash2 /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

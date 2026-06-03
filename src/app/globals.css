@@ -21,6 +21,7 @@
   --color-brand-600: var(--brand-600);
   --color-brand-700: var(--brand-700);
   --color-brand-glow: var(--brand-glow);
+  --color-accent: var(--accent);
 
   --color-success: var(--success);
   --color-live: var(--live);

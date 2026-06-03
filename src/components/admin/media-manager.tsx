@@ -119,7 +119,7 @@ export function MediaManager({ assets }: { assets: Asset[] }) {
                   <button
                     onClick={() => remove(a.id, a.usage)}
                     aria-label="Delete"
-                    className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]"
+                    className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#fb7185]"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
