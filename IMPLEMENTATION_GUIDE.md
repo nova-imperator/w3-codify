@@ -98,8 +98,8 @@ SEO, analytics, Sentry, a11y audit, perf budget, tests. Then deploy per `DEPLOY.
 - [x] **S4** Enrollment + Razorpay
 - [x] **S5** Classroom dashboard + course player
 - [x] **S5** AI Tutor — chat + explain/fix + project review + home teaser
-- [ ] **S6** SEO + analytics + Sentry + tests + a11y/perf pass
-- [ ] **S6** Deployed to EC2 over HTTPS + CI/CD
+- [x] **S6** SEO + analytics + Sentry + tests + a11y/perf pass
+- [x] **S6** Deployed to EC2 + CI/CD _(HTTPS pending: domain is on Cloudflare, not pointed at the EC2 IP — one-command Certbot ready in DEPLOY §4)_
 
 ---
 
