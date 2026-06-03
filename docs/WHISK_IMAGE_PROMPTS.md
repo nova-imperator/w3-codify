@@ -37,12 +37,17 @@ you shared (iPhone, scene, pose, lighting, strict realism rules).
 > natural contrast. No AI-art style, no cartoon glow, no plastic look, no oversaturation,
 > no HDR, no text, no words, no logos. Must look like a real photographed object."*
 
-### Brand palette as REAL light (not neon)
-- Set/background: real near-black studio (`#0A0A0B`–`#121214`), seamless or textured concrete.
-- Accent: a **real warm light source** — an orange-gelled strobe / practical lamp (~3000K)
-  used as a **rim/edge light** against a neutral key (~5200K). Orange shows up as genuine
+### Brand palette as REAL light (not neon) — "Indigo & Cyan"
+> ⚠️ **GLOBAL OVERRIDE — the brand is now Indigo & Cyan, NOT orange.** Every prompt below
+> still says "orange" in places; **read every "orange" as our accent light instead:** a
+> **cool cyan‑to‑indigo gel** — cyan `#22D3EE` and indigo‑violet `#6D5EF6`. So "orange rim
+> light" → "cyan/indigo rim light", "warm orange lamp" → "cool indigo practical light", etc.
+
+- Set/background: real near-black **indigo** studio (`#0A0B14`–`#14162B`), seamless or textured concrete.
+- Accent: a **real cool light source** — a **cyan/indigo‑gelled** strobe or LED panel
+  used as a **rim/edge light** against a neutral key (~5200K). The accent shows up as genuine
   reflections and glints on metal/glass, **not** as a painted glow.
-- Use orange sparingly: one accent light, real bounce, real specular highlights.
+- Use the accent sparingly: one cyan/indigo accent light, real bounce, real specular highlights.
 
 ### Structured prompt template (use these fields, like your reference)
 ```

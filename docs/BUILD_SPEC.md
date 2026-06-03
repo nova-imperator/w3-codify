@@ -88,7 +88,6 @@ early‑career devs aged 18–28. Mobile traffic is majority — **mobile‑firs
 /                         Home (marketing, SSG)
 /courses                  Course catalog (SSG + client filter)
 /courses/[slug]           Single course (SSR, JSON-LD)
-/bootcamp                 Bootcamp/cohort landing
 /about                    About us
 /auth/signin              Phone-OTP + Google
 /auth/signup              Register (name, phone, email, consent, reCAPTCHA)
@@ -110,35 +109,42 @@ early‑career devs aged 18–28. Mobile traffic is majority — **mobile‑firs
 > sections, lessons, prices, and images are created/edited by admins in `/admin`** — no
 > code change needed to add a course. The marketing/catalog pages read from the DB.
 
-**Nav (signed out):** Home · Courses · Bootcamp · About Us · Request Callback — **Sign In**
-**Nav (signed in):** Home · Courses · Bootcamp · Classroom · Request Callback — **Avatar ▾** (Profile, Classroom, Logout)
+**Nav (signed out):** Home · Courses · About Us · Request Callback — **[ Sign In ]** ← rendered as the **bold primary CTA button** (it replaces the old "Start Journey" button; there is no separate Start Journey or Bootcamp link anymore).
+**Nav (signed in):** Home · Courses · Classroom · Request Callback — **Avatar ▾** (Profile, Classroom, Logout)
+
+> **Removed:** the **Bootcamp** nav item/page and the standalone **"Start Journey"** CTA.
+> The primary call-to-action everywhere is now **Sign In** (styled as the prominent
+> gradient button). Any old `/bootcamp` route should 301 → `/courses`.
 
 ---
 
 ## 5. Design System (the crown jewel)
 
-### 5.1 Brand & Color Tokens
-Dark, cinematic, high‑contrast with a molten‑orange accent.
+### 5.1 Brand & Color Tokens — "Indigo & Cyan" (premium dark)
+Dark, cinematic, high‑contrast. Primary = **indigo‑violet**, accent = **cyan**.
+**No orange anywhere** — replace every previous orange usage with these tokens.
 
 ```css
 /* tokens.css — expose as CSS variables + Tailwind theme */
---bg:            #0A0A0B;   /* near-black canvas */
---bg-elevated:   #121214;   /* cards */
---bg-subtle:     #1A1A1E;   /* inputs, hover */
---border:        #26262B;
---fg:            #F5F5F7;   /* primary text */
---fg-muted:      #A1A1AA;   /* secondary text */
---brand:         #FF5A1F;   /* primary orange */
---brand-600:     #E64A12;
---brand-glow:    #FF7A3C;
---accent-grad:   linear-gradient(135deg,#FF7A3C 0%,#FF5A1F 50%,#E0360A 100%);
---success:       #3DD68C;
---live:          #FF3B3B;   /* "LIVE" badge */
---ring:          #FF5A1F;
+--bg:            #0A0B14;   /* near-black indigo canvas */
+--bg-elevated:   #14162B;   /* cards */
+--bg-subtle:     #1B1E36;   /* inputs, hover */
+--border:        #2A2E4A;
+--fg:            #EDEEF7;   /* primary text */
+--fg-muted:      #9AA0C0;   /* secondary text */
+--brand:         #6D5EF6;   /* primary indigo-violet (CTAs) */
+--brand-600:     #5A4BE0;   /* hover/pressed */
+--brand-glow:    #8B7DFF;   /* glow/lighten */
+--accent:        #22D3EE;   /* cyan highlights */
+--accent-grad:   linear-gradient(135deg,#8B7DFF 0%,#6D5EF6 45%,#22D3EE 100%);
+--success:       #34D399;
+--live:          #FB7185;   /* "LIVE" badge (rose, reads on dark) */
+--ring:          #6D5EF6;
 ```
 - Light mode is **optional** (ship dark first; the marketing site is dark‑only).
-- Use the orange **sparingly** — for CTAs, key highlights, the "LIVE" badge, and
-  single hero accent words (e.g. the boxed word *Companies* / *Placed* in the hero).
+- Use the indigo→cyan **sparingly** — for the primary CTA (**Sign In**), key highlights,
+  the "LIVE" badge, and single hero accent words (e.g. the boxed word *Companies* / *Placed*).
+- The hero/CTA gradient uses `--accent-grad` (violet→cyan). Glows and focus rings use `--ring`.
 
 ### 5.2 Typography
 - **Display** (hero, section titles): Clash Display / Satoshi — tight tracking, heavy
@@ -217,10 +223,18 @@ A long, scroll‑driven narrative. Sections, in order:
 2. **Hero** (full viewport):
    - Eyebrow: `LEARN. BUILD. GET PLACED.` (letter‑spaced, brand color).
    - Kinetic headline: **"Become The Software Engineer That `[Companies]` Want To Hire!"**
-     — one word boxed/outlined in brand orange, animated underline/box draw.
+     — the accent word "companies" must render **cleanly** with the indigo→cyan accent.
+     ⚠️ **FIX the broken box:** the current animated box/outline mis-renders (offset/overflowing
+     border). Use a **reliable** accent treatment instead — gradient‑filled text, a clean
+     highlight, or a tidy underline that animates in. **No fragile hand-drawn box** that breaks
+     across line-wraps or viewport sizes. Verify it looks perfect at 360/768/1440px.
    - Subcopy: community + outcomes one‑liner.
-   - Primary CTA **"Start Journey →"** (magnetic), secondary **"Watch Demo"** (opens video modal).
-   - Social proof row: stacked avatars + "1M+ students learning in our mastery programs".
+   - ⚠️ **NO hero buttons.** Remove **both** "Start Journey" and "Watch Demo" from the hero.
+     The single primary CTA is **Sign In** in the sticky navbar (gradient button) — it's always
+     visible, so the hero stays clean. (If a demo is wanted later, it returns as a small text link.)
+   - ⚠️ **Remove the stacked-avatar row** (the "A S R P K" letter circles — they render as broken
+     placeholders). Keep the social proof as a **plain text stat** only: "1M+ students learning in
+     our mastery programs" (no avatar cluster), or drop it into the stat band below.
    - Background: animated aurora/shader gradient or Spline 3D object (lazy, non‑blocking),
      subtle grid, floating code/AI motifs. Parallax on scroll.
 3. **Trust strip / stat band:** animated counters — `600k+ Subscribers`, `1M+ Learners`,
@@ -302,8 +316,36 @@ Two‑column app layout (matches reference):
 
 ### 6.8 CLASSROOM `/classroom` + `/classroom/[courseId]` (protected)
 - Dashboard: enrolled courses, progress rings, "continue learning", upcoming live sessions.
-- Course player: video (Mux/HLS), lesson list + progress, resources, **AI Tutor panel**
-  (§8) docked beside the player with full lesson context.
+- Course player: lesson list + progress, the **multi‑format lesson body** (§6.8.1), resources,
+  and the **AI Tutor panel** (§8) docked beside it with full lesson context.
+
+#### 6.8.1 Lessons are MULTI‑FORMAT & INTERACTIVE (not video‑only) — REQUIRED
+A lesson is **never** just a video. Every lesson renders an ordered stack of **content
+blocks** (the `LessonBlock` model), and a well‑formed lesson MUST mix several formats:
+
+- **Text** — rich written explanation (headings, lists, bold) — the backbone of the lesson.
+- **Video** — short focused clips (Mux/HLS), not the only content.
+- **Documents** — downloadable **PDF / notes / cheat‑sheets / slides** (FILE blocks → S3).
+- **Code** — syntax‑highlighted, copyable snippets.
+- **Study images / diagrams** — the photoreal concept art (see image prompt pack).
+- **Callouts** — tips, warnings, "key idea" notes.
+- **Quiz checkpoints** — **inline questions every few sections to test the student**
+  (MCQ / multi‑select / true‑false), with **instant feedback + explanation**, so learning
+  is active. A lesson SHOULD contain at least one checkpoint; longer lessons several.
+
+**Interactivity requirements:**
+- Quiz checkpoints score inline, show the correct answer + a short "why", and feed a
+  per‑lesson **knowledge score** (stored on `Enrollment.progress`).
+- A lesson is only "complete" when its video(s) are watched **and** its checkpoints passed.
+- Code blocks are copyable; documents are downloadable; images open in a lightbox.
+- End‑of‑section **mini‑recap** + a short quiz; end‑of‑course **final assessment** →
+  unlocks the certificate.
+- The **AI Tutor** sees the current block's content, so "explain this" / "I got the quiz
+  wrong, why?" is context‑aware.
+
+> Admin authors all of this in the lesson‑block editor (§6.9). Seeded courses must ship
+> with **real** multi‑format lessons (text + video placeholder + a document + images +
+> at least one quiz checkpoint each), using the curriculum in `docs/CURRICULUM.md`.
 
 ---
 

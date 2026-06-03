@@ -21,7 +21,7 @@
 ## Kickoff prompt (paste at the start of each session — change the session number)
 Each stage goes all the way to live: **build → GitHub → EC2 → RDS.**
 ```
-Read BUILD_SPEC.md, IMPLEMENTATION_GUIDE.md, and DEPLOY.md.
+Read docs/BUILD_SPEC.md, docs/IMPLEMENTATION_GUIDE.md, and docs/DEPLOY.md.
 
 Build ONLY <SESSION N — milestone name>. Do not start later milestones.
 Follow the tech stack (§3) and the God-Level Frontend Standard (§5.6).
