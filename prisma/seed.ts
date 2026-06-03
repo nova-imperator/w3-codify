@@ -32,6 +32,20 @@ function blocksFor(course: { slug: string }, lesson: LessonContent): Prisma.Less
     media: { create: { url: imgUrl, kind: "image", alt: lesson.image.alt, caption: lesson.image.caption } },
   });
 
+  if (lesson.exercise) {
+    blocks.push({
+      type: "CODE_EXERCISE",
+      order: order++,
+      data: {
+        language: lesson.exercise.language,
+        instructions: lesson.exercise.instructions,
+        starterCode: lesson.exercise.starterCode,
+        solution: lesson.exercise.solution, // server-only; stripped before reaching the client
+        tests: lesson.exercise.tests,
+      },
+    });
+  }
+
   if (lesson.callout) {
     blocks.push({ type: "CALLOUT", order: order++, data: { variant: lesson.callout.variant, md: lesson.callout.md } });
   }

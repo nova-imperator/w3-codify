@@ -1,71 +1,17 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/server/session";
+import {
+  type LessonProgress,
+  loadEnrollment,
+  readProgress,
+  recompute,
+  persistProgress as persist,
+} from "@/server/progress";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
-
-type LessonProgress = {
-  videoDone?: boolean;
-  quiz?: Record<string, { picked: number; correct: boolean }>;
-  completed?: boolean;
-  score?: { correct: number; total: number };
-};
-type Progress = {
-  lessons?: Record<string, LessonProgress>;
-  assessments?: Record<string, { score: number; total: number; passed: boolean; at: string }>;
-  certificate?: { at: string; scorePct: number } | null;
-};
-
-async function loadEnrollment(courseId: string) {
-  const user = await getCurrentUser();
-  if (!user) return null;
-  return prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId: user.id, courseId } },
-  });
-}
-
-function readProgress(raw: unknown): Progress {
-  return raw && typeof raw === "object" ? { ...(raw as Progress) } : {};
-}
-
-/** Recompute a lesson's completion from its gates: video watched + all quizzes passed. */
-async function recompute(lessonId: string, lp: LessonProgress): Promise<LessonProgress> {
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: lessonId },
-    include: { blocks: { select: { id: true, type: true, data: true } } },
-  });
-  if (!lesson) return lp;
-
-  const quizIds = lesson.blocks.filter((b) => b.type === "QUIZ").map((b) => b.id);
-  const hasVideo =
-    !!lesson.videoUrl ||
-    lesson.blocks.some((b) => {
-      const d = (b.data as Record<string, unknown>) ?? {};
-      return (b.type === "VIDEO" || b.type === "EMBED") && typeof d.url === "string" && !!d.url;
-    });
-
-  const quiz = lp.quiz ?? {};
-  const correct = quizIds.filter((id) => quiz[id]?.correct).length;
-  const videoOk = !hasVideo || !!lp.videoDone;
-  const quizOk = quizIds.length === 0 || quizIds.every((id) => quiz[id]?.correct);
-
-  return {
-    ...lp,
-    score: { correct, total: quizIds.length },
-    // A gated lesson completes only when its video + checkpoints are satisfied.
-    completed: videoOk && quizOk && (hasVideo || quizIds.length > 0),
-  };
-}
-
-async function persist(enrollmentId: string, progress: Progress) {
-  await prisma.enrollment.update({
-    where: { id: enrollmentId },
-    data: { progress: progress as object },
-  });
-}
 
 export type LessonState = {
   completed: boolean;

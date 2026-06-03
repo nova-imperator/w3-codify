@@ -12,6 +12,15 @@
 
 export type Quiz = { question: string; options: string[]; answer: number; why: string };
 
+export type ExerciseTest = { name: string; input: string; expected: string; hidden?: boolean };
+export type Exercise = {
+  language: "python" | "javascript";
+  instructions: string;
+  starterCode: string;
+  solution: string;
+  tests: ExerciseTest[];
+};
+
 export type LessonContent = {
   slug: string; // unique within the course → asset filenames
   title: string;
@@ -24,6 +33,7 @@ export type LessonContent = {
   image: { alt: string; caption: string };
   doc: { label: string };
   quizzes: Quiz[];
+  exercise?: Exercise;
 };
 
 export type Tier = "Basics" | "Advanced" | "GOD";
@@ -250,6 +260,20 @@ print(p, cross_entropy(p, 0))`,
                 why: "Recall measures how many true positives you catch — you want to minimise missed cases (false negatives).",
               },
             ],
+            exercise: {
+              language: "python",
+              instructions:
+                "**Compute a mean.** Read a line of space-separated integers from standard input and print their **average rounded to 2 decimal places** (e.g. `20.00`). Averages are the most basic statistic in every ML pipeline.",
+              starterCode:
+                "import sys\n\nnums = [int(x) for x in sys.stdin.read().split()]\n# TODO: print the average of nums, to 2 decimal places (e.g. 20.00)\n",
+              solution:
+                'import sys\n\nnums = [int(x) for x in sys.stdin.read().split()]\navg = sum(nums) / len(nums)\nprint(f"{avg:.2f}")\n',
+              tests: [
+                { name: "Three values", input: "10 20 30", expected: "20.00" },
+                { name: "Two values", input: "1 2", expected: "1.50" },
+                { name: "Hidden: all equal", input: "5 5 5 5", expected: "5.00", hidden: true },
+              ],
+            },
           },
         ],
       },
@@ -866,6 +890,20 @@ ssh -i key.pem ec2-user@13.205.83.45
                 why: "A /24 fixes 24 bits, leaving 8 for hosts → 256 addresses (minus a few reserved).",
               },
             ],
+            exercise: {
+              language: "python",
+              instructions:
+                "**CIDR math.** Read an IPv4 prefix length `N` (0–32) from standard input and print **how many addresses** a `/N` block contains — that's `2^(32 − N)`. Example: `/24` → `256`.",
+              starterCode:
+                "import sys\n\nprefix = int(sys.stdin.read().strip())\n# TODO: print the number of IPv4 addresses in a /prefix block\n",
+              solution:
+                "import sys\n\nprefix = int(sys.stdin.read().strip())\nprint(2 ** (32 - prefix))\n",
+              tests: [
+                { name: "/24 subnet", input: "24", expected: "256" },
+                { name: "/16 subnet", input: "16", expected: "65536" },
+                { name: "Hidden: /8 subnet", input: "8", expected: "16777216", hidden: true },
+              ],
+            },
           },
         ],
       },
@@ -1451,6 +1489,20 @@ You're graded on **reproducibility** (it's all in code), **resilience** (it surv
                 why: "Hashing is irreversible by design; AES/RSA are reversible with the key.",
               },
             ],
+            exercise: {
+              language: "python",
+              instructions:
+                "**Caesar cipher.** Read a lowercase word from standard input and print it shifted **forward by 3** letters, wrapping `x→a`, `y→b`, `z→c` (the classic Caesar cipher). Example: `abc` → `def`.",
+              starterCode:
+                "import sys\n\ntext = sys.stdin.read().strip()\n# TODO: print each letter shifted forward by 3 (wrap z->c)\n",
+              solution:
+                'import sys\n\ntext = sys.stdin.read().strip()\nout = "".join(chr((ord(c) - 97 + 3) % 26 + 97) for c in text)\nprint(out)\n',
+              tests: [
+                { name: "Simple shift", input: "abc", expected: "def" },
+                { name: "Wraps around z", input: "xyz", expected: "abc" },
+                { name: "Hidden: a word", input: "hello", expected: "khoor", hidden: true },
+              ],
+            },
           },
         ],
       },

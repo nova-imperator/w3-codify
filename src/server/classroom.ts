@@ -1,30 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
-
-type LessonProgress = { completed?: boolean; videoDone?: boolean; score?: { correct: number; total: number } };
-type Progress = {
-  lessons?: Record<string, LessonProgress>;
-  assessments?: Record<string, { score: number; total: number; passed: boolean; at: string }>;
-  certificate?: { at: string; scorePct: number } | null;
-};
-
-function readProgress(progress: unknown): Progress {
-  return progress && typeof progress === "object" ? (progress as Progress) : {};
-}
-
-/** Completed lesson ids — supports the new {lessons:{id:{completed}}} shape and legacy {id:true}. */
-function completedLessonIds(progress: unknown): Set<string> {
-  const p = readProgress(progress);
-  const ids = new Set<string>();
-  if (p.lessons) {
-    for (const [id, lp] of Object.entries(p.lessons)) if (lp?.completed) ids.add(id);
-  }
-  // legacy flat shape
-  for (const [k, v] of Object.entries(progress && typeof progress === "object" ? progress : {})) {
-    if (k !== "lessons" && k !== "assessments" && k !== "certificate" && v === true) ids.add(k);
-  }
-  return ids;
-}
+import { readProgress, completedLessonIds } from "@/server/progress";
 
 /** Enrolled courses + progress for the classroom dashboard (§6.8). */
 export async function getMyClassroom() {
@@ -93,9 +69,20 @@ export async function getCoursePlayer(courseId: string) {
   });
   if (!course) return { status: "not-found" as const };
 
+  // Latest saved code per CODE_EXERCISE (resume where the student left off).
+  const exerciseIds = course.sections.flatMap((s) =>
+    s.lessons.flatMap((l) => l.blocks.filter((b) => b.type === "CODE_EXERCISE").map((b) => b.id)),
+  );
+  const subs = exerciseIds.length
+    ? await prisma.codeSubmission.findMany({ where: { userId: user.id, exerciseId: { in: exerciseIds } } })
+    : [];
+  const submissions: Record<string, { code: string; passed: boolean }> = {};
+  for (const s of subs) submissions[s.exerciseId] = { code: s.code, passed: s.passed };
+
   return {
     status: "ok" as const,
     course,
     progress: readProgress(enrollment?.progress),
+    submissions,
   };
 }
