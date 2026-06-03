@@ -14,6 +14,10 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 3000,
+        // Public origin so Auth.js builds correct absolute URLs / callbacks
+        // (set here, not in the shared .env, so local dev stays on localhost).
+        AUTH_URL: "http://13.205.83.45",
+        AUTH_TRUST_HOST: "true",
       },
     },
   ],

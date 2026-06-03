@@ -60,11 +60,24 @@ export function RequestCallbackDialog({
     e.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    // Session 1: lead capture API lands in Session 4 (BUILD_SPEC §9). Simulate.
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitting(false);
-    setDone(true);
-    toast.success("Callback requested — our team will reach out shortly.");
+    try {
+      const res = await fetch("/api/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, enquiryFor: enquiry, message }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+      setDone(true);
+      toast.success("Callback requested — our team will reach out shortly.");
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

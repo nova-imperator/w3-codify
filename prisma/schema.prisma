@@ -30,6 +30,17 @@ model User {
   state         String?
   pincode       String?
   country       String?
+  // Professional (Profile §6.7)
+  jobTitle        String?
+  company         String?
+  experienceYears Int?
+  college         String?
+  degree          String?
+  gradYear        Int?
+  skills          String[]  @default([])
+  githubUrl       String?
+  linkedinUrl     String?
+  websiteUrl      String?
   consentComms  Boolean   @default(true)
   createdAt     DateTime  @default(now())
 

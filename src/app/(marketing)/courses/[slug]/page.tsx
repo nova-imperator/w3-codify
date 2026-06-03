@@ -156,6 +156,7 @@ export default async function CoursePage({
         <aside className="order-2 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="lg:sticky lg:top-24">
             <EnrollCard
+              courseId={course.id}
               slug={course.slug}
               title={course.title}
               priceInr={course.priceInr}
