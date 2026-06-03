@@ -6,7 +6,6 @@ import { Sparkles, Send, User, CornerDownLeft } from "lucide-react";
 import { Reveal } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
 import { GradientText } from "@/components/ui/gradient-text";
-import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
@@ -15,66 +14,62 @@ const SUGGESTIONS = [
   "Fix: list index out of range",
 ];
 
-const CANNED: Record<string, string> = {
-  "Why is my useEffect running twice?":
-    "Great question! In development, React 18+ mounts components twice on purpose (Strict Mode) to surface side-effect bugs early. It only happens in dev — production runs the effect once.\n\nFix: make your effect idempotent and clean up:\n\n```js\nuseEffect(() => {\n  const id = subscribe();\n  return () => unsubscribe(id); // cleanup\n}, []);\n```\n\nIf it still feels wrong, tell me what the effect does and I'll review it line by line.",
-  "Explain gradient descent simply":
-    "Imagine you're on a foggy hill and want to reach the lowest point. You can't see far, so you feel the slope under your feet and step downhill. Repeat, and you'll reach a valley.\n\nGradient descent does exactly that for a model's error: it nudges the weights in the direction that reduces loss, a small `learning_rate` step at a time, until the error stops dropping.",
-  "Fix: list index out of range":
-    "That error means you're reading past the end of a list. Two usual causes:\n\n1) Looping with a hard-coded range — use `range(len(items))` or just `for x in items`.\n2) Off-by-one — remember the last valid index is `len(items) - 1`.\n\nPaste the loop and I'll point at the exact line.",
-};
-
 type Msg = { role: "user" | "ai"; text: string };
 
 export function AiTutorTeaser() {
-  const reduced = usePrefersReducedMotion();
   const [input, setInput] = React.useState("");
   const [messages, setMessages] = React.useState<Msg[]>([
     { role: "ai", text: "Hi! I'm your AI mentor. Ask me any coding doubt — I'm here 24/7." },
   ]);
   const [streaming, setStreaming] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const timers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  React.useEffect(() => () => timers.current.forEach(clearTimeout), []);
-
-  function ask(question: string) {
+  async function ask(question: string) {
     const q = question.trim();
     if (!q || streaming) return;
-    const answer =
-      CANNED[q] ??
-      "Good question! In the full classroom I read your lesson and your code, then walk you through this step by step. Enroll free to try the live AI tutor.";
 
     setInput("");
-    setMessages((m) => [...m, { role: "user", text: q }]);
+    setMessages((m) => [...m, { role: "user", text: q }, { role: "ai", text: "" }]);
     setStreaming(true);
 
-    if (reduced) {
-      setMessages((m) => [...m, { role: "ai", text: answer }]);
-      setStreaming(false);
-      return;
-    }
+    const setLast = (text: string) =>
+      setMessages((m) => {
+        const copy = [...m];
+        copy[copy.length - 1] = { role: "ai", text };
+        return copy;
+      });
 
-    // Simulated token-by-token stream (real Claude stream lands Session 5, §8).
-    setMessages((m) => [...m, { role: "ai", text: "" }]);
-    const tokens = answer.split(/(\s+)/);
-    let acc = "";
-    tokens.forEach((tok, i) => {
-      const t = setTimeout(() => {
-        acc += tok;
-        setMessages((m) => {
-          const copy = [...m];
-          copy[copy.length - 1] = { role: "ai", text: acc };
-          return copy;
-        });
-        if (i === tokens.length - 1) setStreaming(false);
-      }, i * 28);
-      timers.current.push(t);
-    });
+    // Streams a real Claude response (§8.5) via the public, rate-limited
+    // /api/ai/explain endpoint; falls back to a mock stream without an API key.
+    try {
+      const res = await fetch("/api/ai/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q }),
+      });
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        setLast(data.error ?? "Something went wrong — please try again.");
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setLast(acc);
+      }
+    } catch {
+      setLast("Network hiccup — please try again.");
+    } finally {
+      setStreaming(false);
+    }
   }
 
   return (

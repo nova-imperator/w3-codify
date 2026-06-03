@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Star, ArrowUpRight, Users } from "lucide-react";
+import { Star, ArrowUpRight, Users, Sparkles } from "lucide-react";
 import { Badge, LiveBadge } from "@/components/ui/badge";
 import { SmartImage } from "@/components/shared/smart-image";
 import { formatINR, formatCompact, cn } from "@/lib/utils";
+import { pricingFor } from "@/lib/pricing";
 import type { CourseCardData } from "@/server/courses";
 
 export function CourseCard({
@@ -12,11 +13,11 @@ export function CourseCard({
   course: CourseCardData;
   className?: string;
 }) {
+  const { free, anchorInr, launchOffer } = pricingFor(course.priceInr, course.mrpInr);
   const discount =
-    course.mrpInr > 0
+    !free && course.mrpInr > 0
       ? Math.round(((course.mrpInr - course.priceInr) / course.mrpInr) * 100)
       : 0;
-  const free = course.priceInr === 0;
 
   return (
     <Link
@@ -41,8 +42,10 @@ export function CourseCard({
         </SmartImage>
         <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
           {course.isLive ? <LiveBadge /> : <Badge variant="outline">Self-paced</Badge>}
-          {discount > 0 && !free && (
-            <Badge variant="discount">{discount}% OFF</Badge>
+          {launchOffer ? (
+            <Badge variant="discount">100% OFF</Badge>
+          ) : (
+            discount > 0 && <Badge variant="discount">{discount}% OFF</Badge>
           )}
         </div>
       </div>
@@ -74,18 +77,31 @@ export function CourseCard({
           </span>
         </div>
 
+        {launchOffer && (
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand/12 px-2.5 py-1 text-[11px] font-semibold text-brand-glow">
+            <Sparkles className="size-3" /> Launch Offer · 100% OFF · Limited Time
+          </span>
+        )}
+
         <div className="flex items-center justify-between border-t border-border pt-4">
           <div className="flex items-baseline gap-2">
             {free ? (
-              <span className="text-lg font-bold text-success">Free</span>
+              <>
+                <span className="text-sm text-fg-faint line-through">
+                  {formatINR(anchorInr)}
+                </span>
+                <span className="text-lg font-bold text-success">FREE</span>
+              </>
             ) : (
               <>
                 <span className="text-lg font-bold text-fg">
                   {formatINR(course.priceInr)}
                 </span>
-                <span className="text-sm text-fg-faint line-through">
-                  {formatINR(course.mrpInr)}
-                </span>
+                {course.mrpInr > course.priceInr && (
+                  <span className="text-sm text-fg-faint line-through">
+                    {formatINR(course.mrpInr)}
+                  </span>
+                )}
               </>
             )}
           </div>

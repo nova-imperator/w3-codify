@@ -260,6 +260,7 @@ model Project {
   repoUrl   String?
   liveUrl   String?
   status    String   @default("submitted")
+  aiReview  Json? // AI project review feedback (§8.3)
   createdAt DateTime @default(now())
 }
 

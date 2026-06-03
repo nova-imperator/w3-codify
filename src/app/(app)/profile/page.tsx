@@ -46,6 +46,10 @@ export default async function ProfilePage() {
       repoUrl: p.repoUrl,
       liveUrl: p.liveUrl,
       status: p.status,
+      aiReview:
+        p.aiReview && typeof p.aiReview === "object" && "feedback" in p.aiReview
+          ? String((p.aiReview as { feedback: unknown }).feedback)
+          : null,
     })),
   };
 

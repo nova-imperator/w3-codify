@@ -69,7 +69,7 @@ const COURSES: CourseSeed[] = [
     tags: ["GenAI", "Python", "Deep Learning"],
     level: Level.ADVANCED,
     isLive: true,
-    priceInr: 24999,
+    priceInr: 0, // Launch offer — free for now (real price re-activates paid + Razorpay)
     mrpInr: 49999,
     rating: 4.9,
     ratingCount: 2143,
@@ -137,7 +137,7 @@ const COURSES: CourseSeed[] = [
     tags: ["AWS", "Kubernetes", "DevOps"],
     level: Level.ADVANCED,
     isLive: true,
-    priceInr: 21999,
+    priceInr: 0, // Launch offer — free for now
     mrpInr: 42999,
     rating: 4.8,
     ratingCount: 1687,
@@ -204,7 +204,7 @@ const COURSES: CourseSeed[] = [
     tags: ["Pentesting", "OWASP", "Blue Team"],
     level: Level.ADVANCED,
     isLive: false,
-    priceInr: 19999,
+    priceInr: 0, // Launch offer — free for now
     mrpInr: 38999,
     rating: 4.9,
     ratingCount: 1320,

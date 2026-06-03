@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatINR, formatDuration, discountPercent, cn } from "@/lib/utils";
+import { LAUNCH_ANCHOR_INR } from "@/lib/pricing";
 
 declare global {
   interface Window {
@@ -268,23 +269,35 @@ export function EnrollCard({
       </Dialog>
 
       <div className="flex flex-col gap-5 p-6">
-        <div className="flex items-end gap-3">
-          {free ? (
-            <span className="font-display text-3xl font-bold text-success">
-              Free
-            </span>
-          ) : (
-            <>
-              <span className="font-display text-3xl font-bold text-fg">
-                {formatINR(priceInr)}
-              </span>
-              {mrpInr > priceInr && (
-                <span className="mb-1 text-base text-fg-faint line-through">
-                  {formatINR(mrpInr)}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-end gap-3">
+            {free ? (
+              <>
+                <span className="mb-1 font-display text-xl text-fg-faint line-through">
+                  {formatINR(LAUNCH_ANCHOR_INR)}
                 </span>
-              )}
-              {discount > 0 && <Badge variant="discount">{discount}% OFF</Badge>}
-            </>
+                <span className="font-display text-3xl font-bold text-success">
+                  FREE
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-display text-3xl font-bold text-fg">
+                  {formatINR(priceInr)}
+                </span>
+                {mrpInr > priceInr && (
+                  <span className="mb-1 text-base text-fg-faint line-through">
+                    {formatINR(mrpInr)}
+                  </span>
+                )}
+                {discount > 0 && <Badge variant="discount">{discount}% OFF</Badge>}
+              </>
+            )}
+          </div>
+          {free && (
+            <Badge variant="brand" className="w-fit">
+              Launch Offer · 100% OFF · Limited Time
+            </Badge>
           )}
         </div>
 

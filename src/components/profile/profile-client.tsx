@@ -15,11 +15,13 @@ import {
   Trash2,
   ExternalLink,
   Github,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge, LiveBadge } from "@/components/ui/badge";
+import { Markdown } from "@/components/shared/markdown";
 import { AvatarUploader } from "./avatar-uploader";
 import {
   updateBasicInfo,
@@ -57,7 +59,14 @@ export type ProfileData = {
     status: string;
     isLive: boolean;
   }[];
-  projects: { id: string; title: string; repoUrl: string | null; liveUrl: string | null; status: string }[];
+  projects: {
+    id: string;
+    title: string;
+    repoUrl: string | null;
+    liveUrl: string | null;
+    status: string;
+    aiReview: string | null;
+  }[];
 };
 
 type Section = "basic" | "professional" | "batches" | "projects";
@@ -361,23 +370,85 @@ function Projects({ projects }: { projects: ProfileData["projects"] }) {
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {list.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-4 py-3.5">
-                <div className="min-w-0">
-                  <p className="font-medium text-fg">{p.title}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
-                    <Badge variant="default">{p.status}</Badge>
-                    {p.repoUrl && <a href={p.repoUrl} target="_blank" className="inline-flex items-center gap-1 text-fg-muted hover:text-fg"><Github className="size-3.5" /> Repo</a>}
-                    {p.liveUrl && <a href={p.liveUrl} target="_blank" className="inline-flex items-center gap-1 text-fg-muted hover:text-fg"><ExternalLink className="size-3.5" /> Live</a>}
-                  </div>
-                </div>
-                <button onClick={() => remove(p.id)} aria-label="Delete project" className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]">
-                  <Trash2 className="size-4" />
-                </button>
-              </li>
+              <ProjectItem key={p.id} project={p} onRemove={() => remove(p.id)} />
             ))}
           </ul>
         )}
       </Card>
     </div>
+  );
+}
+
+function ProjectItem({
+  project,
+  onRemove,
+}: {
+  project: ProfileData["projects"][number];
+  onRemove: () => void;
+}) {
+  const [review, setReview] = React.useState<string | null>(project.aiReview);
+  const [reviewing, setReviewing] = React.useState(false);
+
+  async function getReview() {
+    setReviewing(true);
+    setReview("");
+    try {
+      const res = await fetch("/api/ai/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      if (!res.ok || !res.body) {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error ?? "Could not review.");
+        setReview(project.aiReview);
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setReview(acc);
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setReviewing(false);
+    }
+  }
+
+  return (
+    <li className="flex flex-col gap-3 py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-medium text-fg">{project.title}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
+            <Badge variant="default">{project.status}</Badge>
+            {project.repoUrl && <a href={project.repoUrl} target="_blank" className="inline-flex items-center gap-1 text-fg-muted hover:text-fg"><Github className="size-3.5" /> Repo</a>}
+            {project.liveUrl && <a href={project.liveUrl} target="_blank" className="inline-flex items-center gap-1 text-fg-muted hover:text-fg"><ExternalLink className="size-3.5" /> Live</a>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button variant="secondary" size="sm" onClick={getReview} disabled={reviewing}>
+            {reviewing ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+            {review ? "Re-review" : "AI review"}
+          </Button>
+          <button onClick={onRemove} aria-label="Delete project" className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-bg-subtle hover:text-[#ff6b6b]">
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      </div>
+      {review && (
+        <div className="rounded-[12px] border border-brand/20 bg-brand/[0.04] p-4">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-brand">
+            <Sparkles className="size-3.5" /> AI Review
+          </p>
+          <Markdown text={review} />
+        </div>
+      )}
+    </li>
   );
 }
