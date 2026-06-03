@@ -358,6 +358,47 @@ blocks** (the `LessonBlock` model), and a well‑formed lesson MUST mix several 
 
 ---
 
+### 6.8.2 INTERACTIVE CODE PLAYGROUND ⭐ — write + run code (the core of a coding school)
+Students must be able to **write code, run it, and see output** — in lessons and standalone.
+This is the "Build" in "Learn. Build. Get Placed."
+
+**Surfaces**
+- **In-lesson exercises:** a new lesson block **`CODE_EXERCISE`** — starter code, language,
+  instructions, visible + hidden **test cases**, and a reference solution. Renders a split view:
+  **Monaco editor** (left) + **output/console + test results** (right).
+- **Standalone playground** `/playground` — a free multi-language scratchpad (sharable via URL).
+
+**Features**
+- **Monaco editor** (VS Code engine): syntax highlight, autocomplete, themes matching our palette.
+- **Run** → executes in a sandbox → streams **stdout/stderr**, exit code, run time.
+- **Auto-grading:** run the test cases, show **pass/fail per case** + a green "all passed" state;
+  feeds the lesson's completion + knowledge score (a `CODE_EXERCISE` must pass to complete).
+- **"Ask AI Tutor"** — sends the student's code + error/output to the §8 AI abstraction for a
+  hint, explanation, or fix (coaching, not just the answer).
+- **Persist** each student's latest code per exercise (resume where they left off).
+- **Languages (v1):** Python (primary — ML/DL), JavaScript/TypeScript, plus Bash & SQL where
+  relevant. Config-driven so more can be added.
+
+**Execution backend (SECURITY-CRITICAL — never run untrusted code in the app process)**
+- Use a **sandboxed code-execution engine**: recommended **Judge0** (Docker) or **Piston**
+  (open-source, multi-language), running **isolated** — separate container/host, **no network**,
+  CPU/memory/time limits, output size caps, one-shot ephemeral runs. (Quick start: Judge0 CE via
+  RapidAPI or a self-hosted Piston container; do NOT host it on the main app box unsandboxed.)
+- App calls the engine **server-side** via a Route Handler (`POST /api/run` → `{language,code,
+  stdin,tests}` → results). Rate-limit per user/IP; hard timeout; sanitize all output.
+- Abuse guardrails: no filesystem/network escape, strict limits, queue + concurrency cap.
+
+**Data**
+- Add `BlockType` value **`CODE_EXERCISE`**; block `data` = `{language, starterCode, instructions,
+  tests:[{input,expected,hidden}], solution}`.
+- Add **`CodeSubmission`** model: `{id, userId, lessonId?, exerciseId, language, code, passed,
+  results Json, createdAt}` (latest-per-exercise for resume + history).
+
+> Admin authors exercises in the lesson editor (§6.9): set language, starter code, and test cases.
+> Seed at least one runnable Python exercise per course so the feature is visible immediately.
+
+---
+
 ### 6.9 ADMIN PANEL `/admin/*` (ADMIN role only) — the content engine
 This is how the team runs the school without touching code. Protected by middleware
 (role = ADMIN), its own clean app shell (sidebar nav, breadcrumb, command palette ⌘K).
