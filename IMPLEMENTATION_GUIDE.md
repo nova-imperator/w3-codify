@@ -96,8 +96,8 @@ SEO, analytics, Sentry, a11y audit, perf budget, tests. Then deploy per `DEPLOY.
 - [x] **S4** Request Callback (modal + leads)
 - [x] **S4** Profile — all sections + avatar to S3
 - [x] **S4** Enrollment + Razorpay
-- [ ] **S5** Classroom dashboard + course player
-- [ ] **S5** AI Tutor — chat + explain/fix + project review + home teaser
+- [x] **S5** Classroom dashboard + course player
+- [x] **S5** AI Tutor — chat + explain/fix + project review + home teaser
 - [ ] **S6** SEO + analytics + Sentry + tests + a11y/perf pass
 - [ ] **S6** Deployed to EC2 over HTTPS + CI/CD
 
