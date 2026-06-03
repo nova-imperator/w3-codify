@@ -71,7 +71,7 @@ early‑career devs aged 18–28. Mobile traffic is majority — **mobile‑firs
 | Video | **Mux** (preferred) or S3 + CloudFront HLS | adaptive streaming, signed playback |
 | Payments | **Razorpay** | ₹ checkout for paid cohorts |
 | Email | **AWS SES** or **Resend** | transactional |
-| AI | **Anthropic Claude API** (`claude-sonnet-4-6` for tutor, `claude-haiku-4-5` for cheap tasks) | §8 |
+| AI | **Multi-provider w/ fallback** — OpenAI (primary) → Gemini (fallback), Anthropic optional. One abstraction, uniform streaming. | §8 |
 
 ### Infra / DevOps
 - **Host:** existing **EC2 (Ubuntu 26.04, ap‑south‑1)** behind **Nginx** reverse proxy, app under **PM2** (or Docker Compose).
@@ -539,13 +539,30 @@ Tier visuals come from `WHISK_IMAGE_PROMPTS.md` §B; course cards from §A. Mark
 
 ---
 
-## 8. AI Teaching Features (the moat — build with Claude API)
+## 8. AI Features (the moat — multi-provider with fallback)
 
-Use the **Anthropic Claude API** with **prompt caching** and **streaming**.
+**Provider strategy (REQUIRED):** build a single **AI provider abstraction** (`src/server/ai/`)
+behind which we run multiple LLM providers with **automatic fallback**:
+- **Primary: OpenAI** (`OPENAI_API_KEY`) — default for all AI calls.
+- **Fallback: Google Gemini** (`GEMINI_API_KEY`) — used automatically if OpenAI errors,
+  rate-limits (429), or times out.
+- **Optional: Anthropic** (`ANTHROPIC_API_KEY`) — if set, may be used; otherwise skip.
+- Order is config-driven (env, e.g. `AI_PROVIDER_ORDER=openai,gemini`). All providers expose
+  the same streaming interface so callers don't care which one answered. Log which provider
+  served each request (for debugging), never expose keys client-side.
 
+Models: a capable default per provider (e.g. OpenAI `gpt-4o` / `gpt-4o-mini` for cheap tasks;
+Gemini `gemini-2.0-flash` / pro). Keep model IDs in one config map so they're easy to bump.
+
+Every AI feature below routes through this abstraction (so all get the fallback for free):
+
+0. **Site Chatbot (NEW):** a floating assistant available **everywhere** (a launcher button,
+   bottom-right) — answers questions about courses, pricing, "which course should I take?",
+   and general coding help; can deep-link to courses/sign-up. Streams; rate-limited; works
+   signed-out (with light limits) and signed-in (with the user's context).
 1. **AI Tutor (in‑classroom):** context‑aware chat docked beside the lesson. System prompt
    includes the current lesson title/transcript + the student's code. Streams responses.
-   Persist threads (`AiThread`/`AiMessage`). Model: `claude-sonnet-4-6`.
+   Persist threads (`AiThread`/`AiMessage`).
 2. **Explain this code / Fix my error:** student pastes code or an error; AI returns a
    step‑by‑step explanation and a corrected snippet with a diff.
 3. **AI project review:** on project submit, AI gives structured feedback (correctness,
@@ -555,10 +572,12 @@ Use the **Anthropic Claude API** with **prompt caching** and **streaming**.
    unauthenticated‑safe) Claude response so the "wow" is genuine.
 
 **Implementation notes**
-- Server‑side only (`ANTHROPIC_API_KEY` never reaches the client).
-- Stream via Route Handler (`ReadableStream`) → client renders token‑by‑token.
-- **Prompt caching** on the static system/context blocks to cut cost.
-- Rate‑limit per user/IP; cheap tasks (titles, summaries) → `claude-haiku-4-5`.
+- Server‑side only (provider keys never reach the client).
+- Stream via Route Handler (`ReadableStream`) → client renders token‑by‑token. The
+  abstraction must stream uniformly across OpenAI/Gemini and **fail over mid-list** (if the
+  primary throws before streaming, transparently try the next provider).
+- Cache static system/context where the provider supports it; cheap tasks → the small model.
+- Rate‑limit per user/IP.
 - Guardrails: keep the tutor on‑topic (coding/learning), refuse to just hand over
   graded‑assignment answers — coach instead.
 
