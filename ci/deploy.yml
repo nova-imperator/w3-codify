@@ -1,0 +1,58 @@
+# ⚠️  MOVE THIS FILE TO .github/workflows/deploy.yml TO ACTIVATE IT.
+# It lives in ci/ because the deploy token lacks GitHub's `workflow` scope and
+# can't push to .github/workflows/. Either move it via the GitHub web UI, or
+# locally run (with a token that has the `workflow` scope):
+#   mkdir -p .github/workflows && git mv ci/deploy.yml .github/workflows/deploy.yml
+#   git commit -m "ci: enable deploy workflow" && git push
+# Then add repo Secrets: EC2_HOST=13.205.83.45, EC2_USER=ubuntu,
+#   EC2_SSH_KEY=<contents of w3codify-key.pem>.
+
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Unit tests
+        run: pnpm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -e
+            cd ~/w3-codify
+            git pull --no-edit origin main
+            pnpm install --frozen-lockfile
+            pnpm prisma migrate deploy
+            DISABLE_WEBPACK_CACHE=1 NODE_OPTIONS=--max-old-space-size=1536 pnpm build
+            pm2 reload ecosystem.config.js --update-env
+            pm2 save

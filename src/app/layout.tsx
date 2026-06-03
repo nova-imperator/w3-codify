@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { SessionProvider } from "next-auth/react";
 import { fontVariables } from "@/lib/fonts";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
+import { Observability } from "@/components/providers/observability";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -32,7 +34,7 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     title: `${SITE.name} — Learn. Build. Get Placed.`,
     description: SITE.description,
-    images: [{ url: "/og/default.png", width: 1200, height: 630 }],
+    images: [{ url: "/og/default.png", width: 1200, height: 630, alt: SITE.name }],
   },
   twitter: {
     card: "summary_large_image",
@@ -62,6 +64,9 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <Suspense fallback={null}>
+          <Observability />
+        </Suspense>
         <SessionProvider>
           <SmoothScroll>{children}</SmoothScroll>
         </SessionProvider>

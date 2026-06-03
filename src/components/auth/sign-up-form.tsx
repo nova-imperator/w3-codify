@@ -12,6 +12,7 @@ import { OtpInput } from "./otp-input";
 import { OrDivider } from "./auth-shell";
 import { GoogleButton } from "./google-button";
 import { DevCodeNotice } from "./dev-code-notice";
+import { track } from "@/lib/analytics";
 
 function fmt(d: string) {
   const x = d.replace(/\D/g, "").slice(0, 10);
@@ -85,6 +86,7 @@ export function SignUpForm({
         setError("Incorrect or expired code. Try again.");
         setCode("");
       } else {
+        track("signup_completed");
         toast.success("Account created — welcome to W3Codify!");
         router.push(callbackUrl);
         router.refresh();

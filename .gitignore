@@ -45,3 +45,8 @@ next-env.d.ts
 # Misc
 .fonttmp/
 .vercel
+
+# Test output
+/test-results/
+/playwright-report/
+/blob-report/

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatINR, formatDuration, discountPercent, cn } from "@/lib/utils";
 import { LAUNCH_ANCHOR_INR } from "@/lib/pricing";
+import { track } from "@/lib/analytics";
 
 declare global {
   interface Window {
@@ -111,6 +112,7 @@ export function EnrollCard({
       });
       if (res.ok) {
         setEnrolled(true);
+        track("enroll", { courseId, slug, type: "free" });
         toast.success("You're enrolled! Redirecting to your classroom…");
         router.push("/classroom");
       } else {
@@ -161,6 +163,7 @@ export function EnrollCard({
           });
           if (v.ok) {
             setEnrolled(true);
+            track("enroll", { courseId, slug, type: "paid" });
             toast.success("Payment successful — you're enrolled!");
             router.push("/classroom");
           } else {
@@ -185,6 +188,7 @@ export function EnrollCard({
       if (res.ok) {
         setMockOpen(false);
         setEnrolled(true);
+        track("enroll", { courseId, slug, type: "test" });
         toast.success("Test payment complete — you're enrolled!");
         router.push("/classroom");
       } else {

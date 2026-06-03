@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 /** Formats raw digits to "98765 43210" for display (§5.6 #7 auto-format). */
 function formatPhone(digits: string) {
@@ -72,6 +73,7 @@ export function RequestCallbackDialog({
         return;
       }
       setDone(true);
+      track("callback_submitted", { enquiryFor: enquiry });
       toast.success("Callback requested — our team will reach out shortly.");
     } catch {
       toast.error("Network error. Please try again.");
