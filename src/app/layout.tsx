@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { fontVariables } from "@/lib/fonts";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { Observability } from "@/components/providers/observability";
+import { SiteChatbot } from "@/components/marketing/site-chatbot";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -69,6 +70,7 @@ export default function RootLayout({
         </Suspense>
         <SessionProvider>
           <SmoothScroll>{children}</SmoothScroll>
+          <SiteChatbot />
         </SessionProvider>
         <Toaster
           position="bottom-right"

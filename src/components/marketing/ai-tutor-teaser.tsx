@@ -43,8 +43,8 @@ export function AiTutorTeaser() {
         return copy;
       });
 
-    // Streams a real Claude response (§8.5) via the public, rate-limited
-    // /api/ai/explain endpoint; falls back to a mock stream without an API key.
+    // Streams a real AI response (§8.5) via the public, rate-limited
+    // /api/ai/explain endpoint (OpenAI → Gemini fallback behind the abstraction).
     try {
       const res = await fetch("/api/ai/explain", {
         method: "POST",

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/server/session";
-import { createAiStream, AI_MODELS, STREAM_HEADERS } from "@/lib/anthropic";
 import { rateLimit } from "@/lib/rate-limit";
 import {
+  streamChat,
+  STREAM_HEADERS,
   buildTutorSystem,
   getLessonContext,
   loadThread,
@@ -44,27 +45,30 @@ export async function POST(req: Request) {
   // Resolve or create the thread (ownership-checked).
   let thread = threadId ? await loadThread(threadId, user.id) : null;
   if (!thread) {
-    const created = await createThread(user.id, ctx?.courseId ?? parsed.data.courseId ?? null, message);
+    const created = await createThread(
+      user.id,
+      ctx?.courseId ?? parsed.data.courseId ?? null,
+      message,
+    );
     thread = { ...created, messages: [] };
   }
 
   const history = toChatMessages(thread.messages);
   await appendMessage(thread.id, "user", message);
 
-  const mockText = ctx
-    ? `Great question about **${ctx.lessonTitle}**! Here's how I'd think about it:\n\n- Break the problem into the smallest piece you don't yet understand.\n- Re-read the relevant part of the lesson and try a tiny example.\n\nTell me which line or concept is tripping you up and I'll walk through it step by step.\n\n_(Demo response — set ANTHROPIC_API_KEY to enable the live AI tutor.)_`
-    : `Happy to help! Share the code or the exact error message and I'll explain what's happening and how to fix it, step by step.\n\n_(Demo response — set ANTHROPIC_API_KEY to enable the live AI tutor.)_`;
-
-  const stream = createAiStream({
-    system: buildTutorSystem(ctx ?? undefined),
-    messages: [...history, { role: "user", content: message }],
-    model: AI_MODELS.tutor,
-    maxTokens: 1024,
-    mockText,
-    onComplete: async (full) => {
-      if (full.trim()) await appendMessage(thread!.id, "assistant", full);
+  const stream = streamChat(
+    {
+      system: buildTutorSystem(ctx ?? undefined),
+      messages: [...history, { role: "user", content: message }],
+      task: "tutor",
+      maxTokens: 1024,
     },
-  });
+    {
+      onComplete: async (full) => {
+        if (full.trim()) await appendMessage(thread!.id, "assistant", full);
+      },
+    },
+  );
 
   return new Response(stream, {
     headers: { ...STREAM_HEADERS, "X-Thread-Id": thread.id },

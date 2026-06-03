@@ -2,21 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
-import { createAiStream, AI_MODELS, STREAM_HEADERS, type SystemBlock } from "@/lib/anthropic";
+import { streamChat, STREAM_HEADERS, REVIEW_SYSTEM } from "@/server/ai";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({ projectId: z.string().min(1) });
-
-const REVIEW_SYSTEM: SystemBlock[] = [
-  {
-    type: "text",
-    text: `You are a senior engineer reviewing a student's portfolio project at a coding school. Give concise, encouraging, actionable feedback in Markdown with exactly these sections:\n\n**Correctness** — likely strengths and risks based on the described project.\n**Readability & structure** — what to check and improve.\n**Next steps** — 3 concrete, prioritized improvements.\n\nBe specific and kind. If you lack the code, say what you'd look for. Keep it under ~200 words.`,
-    cache_control: { type: "ephemeral" },
-  },
-];
 
 // POST /api/ai/review { projectId } — AI project review, streamed + persisted (§8.3).
 export async function POST(req: Request) {
@@ -36,23 +28,25 @@ export async function POST(req: Request) {
 
   const userContent = `Review this project:\nTitle: ${project.title}\nRepo: ${project.repoUrl ?? "(none provided)"}\nLive: ${project.liveUrl ?? "(none provided)"}`;
 
-  const mock = `**Correctness** — The concept is solid. Verify edge cases and add tests around the core logic.\n\n**Readability & structure** — Keep functions small and named clearly; add a README with setup steps.\n\n**Next steps**\n1. Add a test suite for the main flow.\n2. Handle and surface errors to the user.\n3. Write a short README with screenshots.\n\n_(Demo review — set ANTHROPIC_API_KEY for live AI feedback.)_`;
-
-  const stream = createAiStream({
-    system: REVIEW_SYSTEM,
-    messages: [{ role: "user", content: userContent }],
-    model: AI_MODELS.tutor,
-    maxTokens: 700,
-    mockText: mock,
-    onComplete: async (full) => {
-      if (full.trim()) {
-        await prisma.project.update({
-          where: { id: project.id },
-          data: { aiReview: { feedback: full, at: new Date().toISOString() }, status: "reviewed" },
-        });
-      }
+  const stream = streamChat(
+    {
+      system: REVIEW_SYSTEM,
+      messages: [{ role: "user", content: userContent }],
+      task: "tutor",
+      maxTokens: 700,
+      temperature: 0.3,
     },
-  });
+    {
+      onComplete: async (full) => {
+        if (full.trim()) {
+          await prisma.project.update({
+            where: { id: project.id },
+            data: { aiReview: { feedback: full, at: new Date().toISOString() }, status: "reviewed" },
+          });
+        }
+      },
+    },
+  );
 
   return new Response(stream, { headers: STREAM_HEADERS });
 }

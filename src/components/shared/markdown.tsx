@@ -63,8 +63,8 @@ function Blocks({ text }: { text: string }) {
 }
 
 function Inline({ text }: { text: string }) {
-  // Split on `code` and **bold**, keeping delimiters.
-  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  // Split on `code`, **bold**, and [label](href) links, keeping delimiters.
+  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g);
   return (
     <>
       {tokens.map((t, i) => {
@@ -77,6 +77,26 @@ function Inline({ text }: { text: string }) {
         }
         if (t.startsWith("**") && t.endsWith("**")) {
           return <strong key={i} className="font-semibold text-fg">{t.slice(2, -2)}</strong>;
+        }
+        const link = t.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (link) {
+          const [, label, href] = link;
+          // XSS-safe: only allow internal paths or http(s) — never javascript:, etc.
+          const safe = href.startsWith("/") || /^https?:\/\//i.test(href);
+          if (safe) {
+            const external = /^https?:\/\//i.test(href);
+            return (
+              <a
+                key={i}
+                href={href}
+                className="font-medium text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"
+                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              >
+                {label}
+              </a>
+            );
+          }
+          return <React.Fragment key={i}>{label}</React.Fragment>;
         }
         return <React.Fragment key={i}>{t}</React.Fragment>;
       })}

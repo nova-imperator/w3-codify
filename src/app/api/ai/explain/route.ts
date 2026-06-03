@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAiStream, AI_MODELS, STREAM_HEADERS } from "@/lib/anthropic";
+import { streamChat, STREAM_HEADERS, buildExplainSystem } from "@/server/ai";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
-import { buildExplainSystem } from "@/server/ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +13,7 @@ const schema = z.object({
 });
 
 // POST /api/ai/explain — public, rate-limited home-page teaser (§8.5).
-// Unauthenticated-safe; uses the cheaper Haiku model.
+// Unauthenticated-safe; uses the cheaper model tier.
 export async function POST(req: Request) {
   const rl = rateLimit(`ai:explain:${clientIp(req)}`, 8, 60_000);
   if (!rl.ok) {
@@ -32,26 +31,12 @@ export async function POST(req: Request) {
     ? `${message}\n\n\`\`\`${language ?? ""}\n${code}\n\`\`\``
     : message;
 
-  const mock = mockAnswer(message);
-
-  const stream = createAiStream({
+  const stream = streamChat({
     system: buildExplainSystem(),
     messages: [{ role: "user", content: userContent }],
-    model: AI_MODELS.cheap,
+    task: "cheap",
     maxTokens: 512,
-    mockText: mock,
   });
 
   return new Response(stream, { headers: STREAM_HEADERS });
-}
-
-function mockAnswer(q: string): string {
-  const lower = q.toLowerCase();
-  if (lower.includes("useeffect")) {
-    return "In React 18+ dev mode, effects run twice on mount (Strict Mode) to surface bugs — production runs once. Make effects idempotent and clean up:\n\n```js\nuseEffect(() => {\n  const id = subscribe();\n  return () => unsubscribe(id);\n}, []);\n```\n\n_(Demo — set ANTHROPIC_API_KEY for live AI.)_";
-  }
-  if (lower.includes("gradient")) {
-    return "Gradient descent is like walking downhill in fog: feel the slope and step down a little (`learning_rate`) at a time, repeating until the error stops dropping. That's how a model tunes its weights to reduce loss.\n\n_(Demo — set ANTHROPIC_API_KEY for live AI.)_";
-  }
-  return "Good question! Paste your code or the exact error and I'll explain what's happening and show a fix, step by step. In the full classroom I also see your current lesson for context.\n\n_(Demo — set ANTHROPIC_API_KEY for live AI.)_";
 }
