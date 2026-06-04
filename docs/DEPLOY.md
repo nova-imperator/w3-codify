@@ -49,15 +49,31 @@ scp -i C:\W3Codify\w3codify-key.pem C:\W3Codify\.env ubuntu@<EC2_HOST>:~/w3-codi
 > the server (the repo is public; pulls are anonymous) — keep that line out of the server copy.
 
 ## 3. Build & run
+> ⚠️ **CRITICAL — this EC2 box is tiny (~1 GB RAM, disk ~95% full).** A plain `pnpm build`
+> **OOMs / ENOSPCs and fails.** You MUST build with the memory + cache guards below
+> (they already exist in `next.config.ts`). **Never pipe the build through `tail`/`head`** —
+> it hides failures; and **never `pm2 reload` unless the build actually succeeded** (a
+> partial `.next` takes the site DOWN). Free disk first if low (see §3a).
 ```bash
 cd ~/w3-codify
 pnpm install --frozen-lockfile
 pnpm prisma migrate deploy      # apply migrations to RDS
-pnpm build
-pm2 start "pnpm start" --name w3codify   # or: pm2 start ecosystem.config.js
-pm2 save && pm2 startup
+# REQUIRED build command on this box (not a plain `pnpm build`):
+DISABLE_WEBPACK_CACHE=1 SKIP_BUILD_CHECKS=1 NODE_OPTIONS=--max-old-space-size=1536 pnpm build
+# Only reload if the build produced a valid manifest:
+test -f .next/BUILD_ID && pm2 start ecosystem.config.js && pm2 save && pm2 startup
 ```
 App listens on `PORT` (3000) — proxied by Nginx next.
+
+## 3a. Free disk before building (the box runs ~95% full)
+```bash
+pnpm store prune || true
+rm -rf .next/cache || true
+sudo journalctl --vacuum-size=50M || true
+df -h /            # confirm you have headroom before building
+```
+> Long-term fix: **grow the EBS volume** (AWS Console → EC2 → Volumes → Modify → e.g. 8→20 GB,
+> then `sudo growpart`/`resize2fs`). That removes this whole class of OOM/ENOSPC build failures.
 
 ## 4. Nginx reverse proxy + HTTPS
 ```nginx
@@ -90,8 +106,10 @@ cd ~/w3-codify
 git pull
 pnpm install --frozen-lockfile
 pnpm prisma migrate deploy
-pnpm build
-pm2 reload w3codify
+# Free disk if low (see §3a), then build with the REQUIRED guards (plain `pnpm build` fails):
+DISABLE_WEBPACK_CACHE=1 SKIP_BUILD_CHECKS=1 NODE_OPTIONS=--max-old-space-size=1536 pnpm build
+# Only reload if the build succeeded — a partial .next takes the site down:
+test -f .next/BUILD_ID && pm2 reload ecosystem.config.js --update-env || echo "BUILD FAILED — not reloading"
 ```
 
 ## 6. CI/CD (automate step 5)
