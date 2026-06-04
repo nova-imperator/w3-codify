@@ -92,6 +92,16 @@ export function ProfileClient({
   const [section, setSection] = React.useState<Section>("basic");
   // Lifted so the sidebar avatar reflects gender changes from Basic Info instantly.
   const [gender, setGender] = React.useState<Gender>(data.gender);
+  // Also sync the navbar avatar the moment a gender is picked (not only on Save),
+  // so the top-right menu and the sidebar always match. save() still persists to the DB.
+  const { update } = useSession();
+  const onGenderChange = React.useCallback(
+    (g: Gender) => {
+      setGender(g);
+      void update({ gender: g });
+    },
+    [update],
+  );
   const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ") || "Learner";
   const purchased = data.enrollments.filter((e) => e.type === "PAID").length;
 
@@ -129,7 +139,7 @@ export function ProfileClient({
 
       {/* Main */}
       <div className="min-w-0">
-        {section === "basic" && <BasicInfo data={data} gender={gender} onGenderChange={setGender} />}
+        {section === "basic" && <BasicInfo data={data} gender={gender} onGenderChange={onGenderChange} />}
         {section === "professional" && <Professional data={data} />}
         {section === "batches" && <Batches enrollments={data.enrollments} />}
         {section === "projects" && <Projects projects={data.projects} />}
