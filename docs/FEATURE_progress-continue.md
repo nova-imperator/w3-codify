@@ -32,15 +32,24 @@ home page or `/classroom`, show a **dismissible banner**:
 - Only render when there's ≥1 in-progress course; never for 0 or only-completed.
 - On-brand (Indigo & Cyan), accessible (the ✕ is keyboard-focusable, `aria-label`), mobile-fine.
 
-## 3. Engagement add-ons (include these — high impact, low effort)
+## 3. Engagement bundle (ALL required — except certificates, which are out of scope)
 - **🔥 Learning streak:** a daily streak counter (consecutive days with any lesson activity),
   shown in the navbar/dashboard. Huge for retention. Store last-active date + streak on the user.
 - **"Up next" on lesson complete:** after finishing a lesson, surface the next lesson with a
   one-click "Continue →" (keeps momentum; pairs with the §6.8 classroom auto-advance).
 - **Resume everywhere:** clicking an in-progress course (card, banner, anywhere) opens the
   last-viewed lesson, not lesson 1.
-- *(Optional, SMTP is now configured)* a **weekly progress email**: "You're {X}% through {Course} —
-  pick up where you left off" with a resume link. Gate behind the user's comms consent.
+- **📧 Weekly progress email** (SMTP is configured): "You're {X}% through {Course} — pick up where
+  you left off" + resume link. Gate behind the user's comms consent. Send via a simple scheduled
+  job/cron (or on-login check "has it been 7 days?"). Don't spam — once/week max per user.
+- **🎖️ Badges / XP:** award badges for milestones — first lesson, first course complete, 7-day
+  streak, first project shipped, GOD-tier reached. Show them on the profile + a small toast when
+  earned. Lightweight (a `Badge`/`UserBadge` table + award checks on lesson/course/streak events).
+- **🔔 Push notifications (PWA):** opt-in web push for streak reminders / "you're almost done".
+  Use the existing PWA setup; ask permission tastefully (not on first load). Best-effort.
+- **👥 Live social proof:** on course pages show "**{N} students learning**" (real count from
+  enrollments; round/format nicely). Boosts conversion.
+- ❌ **Certificates are explicitly OUT of scope** for this task — do not build them.
 
 ## Data / notes
 - `Enrollment.progress` (Json) already tracks completed lessons — read it; add fields if needed
