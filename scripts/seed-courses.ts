@@ -6,7 +6,7 @@
  *
  * Unlike prisma/seed.ts (which rebuilds EVERY course and reassigns lesson IDs),
  * this upserts and rebuilds sections/assessments for the named slugs ONLY, so
- * existing courses + their enrollment progress / code submissions are untouched.
+ * existing courses + their enrollment progress are untouched.
  * Prisma auto-loads .env, so DATABASE_URL is picked up automatically.
  */
 import { PrismaClient, Level, CourseStatus, Prisma } from "@prisma/client";
@@ -34,16 +34,13 @@ function blocksFor(course: { slug: string }, lesson: LessonContent): Prisma.Less
     media: { create: { url: imgUrl, kind: "image", alt: lesson.image.alt, caption: lesson.image.caption } },
   });
   if (lesson.exercise) {
+    // The interactive code playground was removed: seed the (former) exercise as
+    // a plain, read-only CODE block using its worked solution so the lesson keeps
+    // a real code snippet.
     blocks.push({
-      type: "CODE_EXERCISE",
+      type: "CODE",
       order: order++,
-      data: {
-        language: lesson.exercise.language,
-        instructions: lesson.exercise.instructions,
-        starterCode: lesson.exercise.starterCode,
-        solution: lesson.exercise.solution, // server-only; stripped before reaching the client
-        tests: lesson.exercise.tests,
-      },
+      data: { lang: lesson.exercise.language, code: lesson.exercise.solution },
     });
   }
   if (lesson.callout) {

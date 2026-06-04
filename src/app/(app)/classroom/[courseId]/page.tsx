@@ -35,12 +35,9 @@ export default async function CoursePlayerPage({
     );
   }
 
-  const { course, progress, submissions } = result;
-  // code_playground off → strip in-lesson runnable exercises; ai_tutor off → hide the dock.
-  const [playgroundOn, aiTutorOn] = await Promise.all([
-    isFeatureEnabled("code_playground"),
-    isFeatureEnabled("ai_tutor"),
-  ]);
+  const { course, progress } = result;
+  // ai_tutor off → hide the dock.
+  const aiTutorOn = await isFeatureEnabled("ai_tutor");
   const sections = course.sections.map((s) => ({
     id: s.id,
     title: s.title,
@@ -51,17 +48,13 @@ export default async function CoursePlayerPage({
       isFreePreview: l.isFreePreview,
       videoUrl: l.videoUrl,
       sectionTitle: s.title,
-      blocks: l.blocks
-        .filter((b) => playgroundOn || b.type !== "CODE_EXERCISE")
-        .map<RenderBlock>((b) => ({
+      blocks: l.blocks.map<RenderBlock>((b) => ({
         id: b.id,
         type: b.type,
-        // CODE_EXERCISE: never ship the reference solution or hidden test
-        // expectations to the client — grading happens server-side in /api/run.
-        data:
-          b.type === "CODE_EXERCISE"
-            ? sanitizeExercise((b.data as Record<string, unknown>) ?? {})
-            : ((b.data as Record<string, unknown>) ?? {}),
+        // Legacy CODE_EXERCISE blocks now render as a static, read-only code
+        // snippet (the runnable editor + grading have been removed). The block's
+        // `data` (language/starterCode) is safe to ship as-is.
+        data: (b.data as Record<string, unknown>) ?? {},
         media: b.media ? { url: b.media.url, alt: b.media.alt } : null,
       })),
     })),
@@ -83,27 +76,7 @@ export default async function CoursePlayerPage({
       sections={sections}
       assessments={assessments}
       initialProgress={progress}
-      submissions={submissions}
       aiTutorEnabled={aiTutorOn}
     />
   );
-}
-
-/** Strip the solution + hidden test details before sending an exercise to the client. */
-function sanitizeExercise(d: Record<string, unknown>): Record<string, unknown> {
-  const rawTests = Array.isArray(d.tests) ? (d.tests as Record<string, unknown>[]) : [];
-  const tests = rawTests.map((t, i) => {
-    const hidden = !!t.hidden;
-    const name = typeof t.name === "string" ? t.name : `Test ${i + 1}`;
-    // Visible tests expose their input/expected; hidden tests reveal nothing but their existence.
-    return hidden
-      ? { name, hidden: true }
-      : { name, hidden: false, input: t.input ?? "", expected: t.expected ?? "" };
-  });
-  return {
-    language: d.language ?? "python",
-    starterCode: d.starterCode ?? "",
-    instructions: d.instructions ?? "",
-    tests,
-  };
 }

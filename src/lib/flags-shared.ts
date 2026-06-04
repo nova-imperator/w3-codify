@@ -8,7 +8,6 @@
 export type PublicFlags = {
   ai_tutor: boolean;
   chatbot: boolean;
-  code_playground: boolean;
   paid_pricing: boolean;
   course_reviews: boolean;
 };
@@ -17,7 +16,6 @@ export type PublicFlags = {
 export const DEFAULT_PUBLIC_FLAGS: PublicFlags = {
   ai_tutor: true,
   chatbot: true,
-  code_playground: true,
   paid_pricing: false,
   course_reviews: false,
 };

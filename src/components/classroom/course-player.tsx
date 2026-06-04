@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn, formatDuration } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LessonBlocks, type RenderBlock, type QuizState, type SavedCode } from "./lesson-blocks";
+import { LessonBlocks, type RenderBlock, type QuizState } from "./lesson-blocks";
 import { AiTutorPanel } from "./ai-tutor-panel";
 import { AssessmentPanel, type AssessmentData } from "./assessment-panel";
 import {
@@ -47,7 +47,6 @@ type Section = { id: string; title: string; lessons: Lesson[] };
 type Lp = {
   videoDone?: boolean;
   quiz?: QuizState;
-  exercises?: Record<string, { passed: boolean; passedCount: number; totalCount: number }>;
   completed?: boolean;
   score?: { correct: number; total: number };
 };
@@ -60,7 +59,7 @@ function persistKey(courseId: string) {
   return `w3c:classroom:${courseId}`;
 }
 
-/** Don't fire shortcuts while typing in a field or the code editor. */
+/** Don't fire shortcuts while typing in a field. */
 function isTypingTarget(el: Element | null): boolean {
   if (!el) return false;
   const tag = el.tagName;
@@ -68,8 +67,7 @@ function isTypingTarget(el: Element | null): boolean {
     tag === "INPUT" ||
     tag === "TEXTAREA" ||
     tag === "SELECT" ||
-    (el as HTMLElement).isContentEditable ||
-    !!el.closest(".monaco-editor")
+    (el as HTMLElement).isContentEditable
   );
 }
 
@@ -92,7 +90,6 @@ export function CoursePlayer({
   sections,
   assessments,
   initialProgress,
-  submissions,
   aiTutorEnabled = true,
 }: {
   courseId: string;
@@ -105,7 +102,6 @@ export function CoursePlayer({
     assessments?: Record<string, { score: number; total: number; passed: boolean }>;
     certificate?: { at: string; scorePct: number } | null;
   };
-  submissions?: SavedCode;
   aiTutorEnabled?: boolean;
 }) {
   const flat = React.useMemo(() => sections.flatMap((s) => s.lessons), [sections]);
@@ -354,7 +350,6 @@ export function CoursePlayer({
             total={total}
             hasNext={hasNext}
             state={lp[activeLesson.id] ?? {}}
-            submissions={submissions}
             onLessonState={(s) => setLp((prev) => ({ ...prev, [activeLesson.id]: { ...prev[activeLesson.id], ...s } }))}
             onPrev={goPrev}
             onNext={goNext}
@@ -489,7 +484,6 @@ function LessonView({
   total,
   hasNext,
   state,
-  submissions,
   onLessonState,
   onPrev,
   onNext,
@@ -500,7 +494,6 @@ function LessonView({
   total: number;
   hasNext: boolean;
   state: Lp;
-  submissions?: SavedCode;
   onLessonState: (s: Partial<Lp>) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -510,21 +503,9 @@ function LessonView({
     !!lesson.videoUrl ||
     lesson.blocks.some((b) => (b.type === "VIDEO" || b.type === "EMBED") && typeof b.data?.url === "string" && b.data.url);
   const quizCount = lesson.blocks.filter((b) => b.type === "QUIZ").length;
-  const exerciseIds = lesson.blocks.filter((b) => b.type === "CODE_EXERCISE").map((b) => b.id);
-  const exercisePassed = exerciseIds.filter((id) => state.exercises?.[id]?.passed).length;
   const quizPassed = state.quiz ? Object.values(state.quiz).filter((q) => q.correct).length : 0;
   const completed = !!state.completed;
-  const gated = hasVideo || quizCount > 0 || exerciseIds.length > 0;
-
-  async function onExercise(blockId: string, r: { passed: boolean; passedCount: number; totalCount: number; lessonCompleted: boolean; score?: { correct: number; total: number } }) {
-    const wasComplete = completed;
-    onLessonState({
-      exercises: { ...(state.exercises ?? {}), [blockId]: { passed: r.passed, passedCount: r.passedCount, totalCount: r.totalCount } },
-      completed: r.lessonCompleted,
-      score: r.score,
-    });
-    if (r.lessonCompleted && !wasComplete) toast.success("Lesson complete! 🎉");
-  }
+  const gated = hasVideo || quizCount > 0;
 
   async function onQuiz(blockId: string, picked: number, correct: boolean) {
     onLessonState({ quiz: { ...(state.quiz ?? {}), [blockId]: { picked, correct } } });
@@ -596,15 +577,7 @@ function LessonView({
 
       {/* Blocks */}
       <div className="mt-8">
-        <LessonBlocks
-          blocks={lesson.blocks}
-          savedQuiz={state.quiz}
-          onQuiz={onQuiz}
-          courseId={courseId}
-          lessonId={lesson.id}
-          savedCode={submissions}
-          onExercise={onExercise}
-        />
+        <LessonBlocks blocks={lesson.blocks} savedQuiz={state.quiz} onQuiz={onQuiz} />
       </div>
 
       {/* Completion + navigation */}
@@ -616,7 +589,6 @@ function LessonView({
             <p className="font-medium text-fg">To complete this lesson:</p>
             {hasVideo && <Gate done={!!state.videoDone}>Watch the video</Gate>}
             {quizCount > 0 && <Gate done={quizPassed === quizCount}>Pass all checkpoints ({quizPassed}/{quizCount})</Gate>}
-            {exerciseIds.length > 0 && <Gate done={exercisePassed === exerciseIds.length}>Pass the code exercise{exerciseIds.length > 1 ? "s" : ""} ({exercisePassed}/{exerciseIds.length})</Gate>}
           </div>
         ) : null}
 

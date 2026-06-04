@@ -9,7 +9,6 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { NAV_LINKS } from "@/lib/site";
-import { useFlags } from "@/components/providers/flags-provider";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/ui/magnetic";
@@ -21,13 +20,11 @@ export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
-  const { code_playground } = useFlags();
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  // Hide the Playground link when its feature flag is off.
-  const navLinks = NAV_LINKS.filter((l) => l.href !== "/playground" || code_playground);
+  const navLinks = NAV_LINKS;
 
   useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 24));
 

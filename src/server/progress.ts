@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
 
 /**
- * Shared enrollment-progress core (§6.8.1, §6.8.2). A lesson completes only when
- * its video is watched AND all quiz checkpoints pass AND all CODE_EXERCISE blocks
- * pass; the per-lesson knowledge score counts quizzes + exercises.
+ * Shared enrollment-progress core (§6.8.1). A lesson completes only when its
+ * video is watched AND all quiz checkpoints pass; the per-lesson knowledge score
+ * counts quiz checkpoints. (The legacy `exercises` field is retained as optional
+ * for backward-compat with existing stored progress but no longer gates anything.)
  */
 export type LessonProgress = {
   videoDone?: boolean;
@@ -49,7 +50,7 @@ export async function persistProgress(enrollmentId: string, progress: Progress) 
   });
 }
 
-/** Recompute a lesson's completion + score from its gates: video + quizzes + exercises. */
+/** Recompute a lesson's completion + score from its gates: video + quiz checkpoints. */
 export async function recompute(lessonId: string, lp: LessonProgress): Promise<LessonProgress> {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
@@ -58,7 +59,6 @@ export async function recompute(lessonId: string, lp: LessonProgress): Promise<L
   if (!lesson) return lp;
 
   const quizIds = lesson.blocks.filter((b) => b.type === "QUIZ").map((b) => b.id);
-  const exerciseIds = lesson.blocks.filter((b) => b.type === "CODE_EXERCISE").map((b) => b.id);
   const hasVideo =
     !!lesson.videoUrl ||
     lesson.blocks.some((b) => {
@@ -67,18 +67,15 @@ export async function recompute(lessonId: string, lp: LessonProgress): Promise<L
     });
 
   const quiz = lp.quiz ?? {};
-  const exercises = lp.exercises ?? {};
   const quizCorrect = quizIds.filter((id) => quiz[id]?.correct).length;
-  const exDone = exerciseIds.filter((id) => exercises[id]?.passed).length;
 
   const videoOk = !hasVideo || !!lp.videoDone;
   const quizOk = quizIds.length === 0 || quizIds.every((id) => quiz[id]?.correct);
-  const exOk = exerciseIds.length === 0 || exerciseIds.every((id) => exercises[id]?.passed);
-  const gated = hasVideo || quizIds.length > 0 || exerciseIds.length > 0;
+  const gated = hasVideo || quizIds.length > 0;
 
   return {
     ...lp,
-    score: { correct: quizCorrect + exDone, total: quizIds.length + exerciseIds.length },
-    completed: videoOk && quizOk && exOk && gated,
+    score: { correct: quizCorrect, total: quizIds.length },
+    completed: videoOk && quizOk && gated,
   };
 }

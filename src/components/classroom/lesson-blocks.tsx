@@ -16,7 +16,6 @@ import {
 import { Markdown } from "@/components/shared/markdown";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CodeExercise, type ExerciseData } from "./code-exercise";
 
 export type RenderBlock = {
   id: string;
@@ -26,31 +25,15 @@ export type RenderBlock = {
 };
 
 export type QuizState = Record<string, { picked: number; correct: boolean }>;
-export type SavedCode = Record<string, { code: string; passed: boolean }>;
-export type ExerciseResult = {
-  passed: boolean;
-  passedCount: number;
-  totalCount: number;
-  lessonCompleted: boolean;
-  score?: { correct: number; total: number };
-};
 
 export function LessonBlocks({
   blocks,
   savedQuiz,
   onQuiz,
-  courseId,
-  lessonId,
-  savedCode,
-  onExercise,
 }: {
   blocks: RenderBlock[];
   savedQuiz?: QuizState;
   onQuiz?: (blockId: string, picked: number, correct: boolean) => void;
-  courseId?: string;
-  lessonId?: string;
-  savedCode?: SavedCode;
-  onExercise?: (blockId: string, r: ExerciseResult) => void;
 }) {
   if (blocks.length === 0) {
     return (
@@ -62,16 +45,7 @@ export function LessonBlocks({
   return (
     <div className="flex flex-col gap-6">
       {blocks.map((b) => (
-        <Block
-          key={b.id}
-          block={b}
-          saved={savedQuiz?.[b.id]}
-          onQuiz={onQuiz}
-          courseId={courseId}
-          lessonId={lessonId}
-          savedCode={savedCode?.[b.id]}
-          onExercise={onExercise}
-        />
+        <Block key={b.id} block={b} saved={savedQuiz?.[b.id]} onQuiz={onQuiz} />
       ))}
     </div>
   );
@@ -85,35 +59,17 @@ function Block({
   block,
   saved,
   onQuiz,
-  courseId,
-  lessonId,
-  savedCode,
-  onExercise,
 }: {
   block: RenderBlock;
   saved?: { picked: number; correct: boolean };
   onQuiz?: (blockId: string, picked: number, correct: boolean) => void;
-  courseId?: string;
-  lessonId?: string;
-  savedCode?: { code: string; passed: boolean };
-  onExercise?: (blockId: string, r: ExerciseResult) => void;
 }) {
   const d = block.data ?? {};
   switch (block.type) {
-    case "CODE_EXERCISE": {
-      if (!courseId || !lessonId) return null; // only runnable inside the player
-      return (
-        <CodeExercise
-          blockId={block.id}
-          courseId={courseId}
-          lessonId={lessonId}
-          data={d as unknown as ExerciseData}
-          savedCode={savedCode?.code}
-          savedPassed={savedCode?.passed}
-          onResult={(r) => onExercise?.(block.id, r)}
-        />
-      );
-    }
+    // Legacy CODE_EXERCISE blocks (the runnable editor is gone): render the
+    // exercise's starter code as a plain, read-only syntax-highlighted snippet.
+    case "CODE_EXERCISE":
+      return <CodeBlock lang={str(d, "language") || str(d, "lang")} code={str(d, "starterCode") || str(d, "code")} />;
     case "TEXT":
       return <Markdown text={str(d, "md")} className="text-base" />;
     case "CODE":

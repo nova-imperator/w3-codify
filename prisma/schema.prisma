@@ -53,7 +53,6 @@ model User {
   accounts        Account[]
   sessions        Session[]
   aiThreads       AiThread[]
-  codeSubmissions CodeSubmission[]
 }
 
 enum Role {
@@ -235,25 +234,10 @@ enum BlockType {
   QUIZ
   FILE
   EMBED
+  // Legacy: the interactive code playground/exercise feature was removed. This
+  // value is kept (Postgres can't easily drop enum values) so existing
+  // CODE_EXERCISE blocks still load — they now render as static read-only code.
   CODE_EXERCISE
-}
-
-// Student's latest code per interactive exercise (§6.8.2) — for resume + grading.
-model CodeSubmission {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exerciseId String // the CODE_EXERCISE LessonBlock id
-  lessonId   String?
-  language   String
-  code       String
-  passed     Boolean  @default(false)
-  results    Json? // [{ name, passed, hidden }] + counts
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([userId, exerciseId])
-  @@index([userId])
 }
 
 model MediaAsset {

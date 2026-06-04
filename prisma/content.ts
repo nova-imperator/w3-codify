@@ -13,6 +13,10 @@
 export type Quiz = { question: string; options: string[]; answer: number; why: string };
 
 export type ExerciseTest = { name: string; input: string; expected: string; hidden?: boolean };
+// The interactive code playground/exercise feature was removed. A lesson's
+// `exercise` is now seeded as a plain read-only CODE block using its `solution`
+// (the worked snippet). The other fields (instructions/starterCode/tests) are
+// retained for historical content but are no longer emitted as blocks.
 export type Exercise = {
   language: "python" | "javascript";
   instructions: string;

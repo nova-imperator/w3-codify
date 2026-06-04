@@ -20,7 +20,6 @@ export type FlagKey =
   | "paid_pricing"
   | "ai_tutor"
   | "chatbot"
-  | "code_playground"
   | "course_reviews";
 
 type FlagDef = { default: boolean; label: string; description: string };
@@ -50,11 +49,6 @@ export const FLAG_DEFS: Record<FlagKey, FlagDef> = {
     default: true,
     label: "Site chatbot",
     description: "Show the floating site assistant on every page.",
-  },
-  code_playground: {
-    default: true,
-    label: "Code playground",
-    description: "Show /playground and the in-lesson runnable code exercises.",
   },
   course_reviews: {
     default: false,
@@ -99,7 +93,6 @@ export async function getPublicFlags(): Promise<PublicFlags> {
   return {
     ai_tutor: f.ai_tutor,
     chatbot: f.chatbot,
-    code_playground: f.code_playground,
     paid_pricing: f.paid_pricing,
     course_reviews: f.course_reviews,
   };

@@ -75,20 +75,9 @@ export async function getCoursePlayer(courseId: string) {
   });
   if (!course) return { status: "not-found" as const };
 
-  // Latest saved code per CODE_EXERCISE (resume where the student left off).
-  const exerciseIds = course.sections.flatMap((s) =>
-    s.lessons.flatMap((l) => l.blocks.filter((b) => b.type === "CODE_EXERCISE").map((b) => b.id)),
-  );
-  const subs = exerciseIds.length
-    ? await prisma.codeSubmission.findMany({ where: { userId: user.id, exerciseId: { in: exerciseIds } } })
-    : [];
-  const submissions: Record<string, { code: string; passed: boolean }> = {};
-  for (const s of subs) submissions[s.exerciseId] = { code: s.code, passed: s.passed };
-
   return {
     status: "ok" as const,
     course,
     progress: readProgress(enrollment?.progress),
-    submissions,
   };
 }

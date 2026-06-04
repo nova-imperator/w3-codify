@@ -5,7 +5,7 @@ import { getPublishedSlugs } from "@/server/courses";
 export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticRoutes = ["", "/courses", "/about", "/auth/signin", "/playground"];
+  const staticRoutes = ["", "/courses", "/about", "/auth/signin"];
   const base: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
     url: `${SITE.url}${route}`,
     changeFrequency: "weekly",

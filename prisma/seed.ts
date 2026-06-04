@@ -33,16 +33,13 @@ function blocksFor(course: { slug: string }, lesson: LessonContent): Prisma.Less
   });
 
   if (lesson.exercise) {
+    // The interactive code playground was removed: seed the (former) exercise as
+    // a plain, read-only CODE block using its worked solution so the lesson keeps
+    // a real code snippet.
     blocks.push({
-      type: "CODE_EXERCISE",
+      type: "CODE",
       order: order++,
-      data: {
-        language: lesson.exercise.language,
-        instructions: lesson.exercise.instructions,
-        starterCode: lesson.exercise.starterCode,
-        solution: lesson.exercise.solution, // server-only; stripped before reaching the client
-        tests: lesson.exercise.tests,
-      },
+      data: { lang: lesson.exercise.language, code: lesson.exercise.solution },
     });
   }
 
@@ -162,7 +159,6 @@ async function seedFeatureFlags() {
     { key: "paid_pricing", enabled: false, description: "Show real prices and checkout. When off, every course is FREE (launch offer)." },
     { key: "ai_tutor", enabled: true, description: "Show the context-aware AI tutor inside lessons." },
     { key: "chatbot", enabled: true, description: "Show the floating site assistant on every page." },
-    { key: "code_playground", enabled: true, description: "Show /playground and the in-lesson runnable code exercises." },
     { key: "course_reviews", enabled: false, description: "Reserved for a future student reviews feature." },
   ];
   for (const f of flags) {
