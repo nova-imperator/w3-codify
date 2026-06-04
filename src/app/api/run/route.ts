@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
+import { isFeatureEnabled } from "@/server/flags";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { runCode, gradeExercise, isLanguage, type TestCase, type Language } from "@/server/runner";
 import {
@@ -33,6 +34,11 @@ const gradeSchema = z.object({
 // public) or "grade" (auth + enrolled: runs hidden tests server-side, persists submission
 // + feeds lesson completion/score). Untrusted code never executes in this process.
 export async function POST(req: Request) {
+  // code_playground gates both the scratchpad and in-lesson exercises.
+  if (!(await isFeatureEnabled("code_playground"))) {
+    return NextResponse.json({ error: "The code playground is currently unavailable." }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => null);
   const mode = body?.mode;
 

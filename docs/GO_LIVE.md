@@ -60,12 +60,48 @@ Each is coded and dormant; it activates the moment its key is present. After add
 | Phone OTP texts | `MSG91_AUTH_KEY` (+ sender/template) or Twilio | msg91.com / twilio.com | Real SMS instead of on-screen code |
 | Google sign-in | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | console.cloud.google.com | "Continue with Google" button |
 | Bot protection | `RECAPTCHA_SITE_KEY` / `RECAPTCHA_SECRET_KEY` | google.com/recaptcha/admin | reCAPTCHA on signup/callback |
-| Analytics | `POSTHOG_KEY` (or GA id) | posthog.com | Funnel tracking |
-| Error tracking | `SENTRY_DSN` | sentry.io | Crash/error reports |
+| Analytics (PostHog) | `NEXT_PUBLIC_POSTHOG_KEY` | posthog.com | Pageviews + funnel tracking — see §3a |
+| Error tracking (Sentry) | `SENTRY_DSN` | sentry.io | Crash/error reports — see §3a |
 | Paid courses (later) | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | razorpay.com | Only when you set a real price; FREE now |
 
 > Google OAuth + reCAPTCHA ask for your site URL — add `http://localhost:3000`,
 > `http://13.205.83.45`, and your https domain.
+
+---
+
+## 3a. Observability — Sentry (errors) + PostHog (analytics)
+Both ship **fully wired but dormant**. With **no** env vars set they are a complete no-op:
+zero behaviour change, no console errors, no network calls. Each turns on the moment its
+key is present — `scp` `.env` to EC2 and `pm2 reload` after adding any.
+
+### Sentry (crash / error tracking)
+| Env var | Required? | Turns on |
+|---|---|---|
+| `SENTRY_DSN` | **yes** | Server + edge error capture (route handlers, server components, API). |
+| `NEXT_PUBLIC_SENTRY_DSN` | optional | Browser error capture (uncaught render errors, client exceptions). Usually the **same DSN value** as `SENTRY_DSN`. **Must be set at build time** (it's inlined into the client bundle) — set it before `pnpm build`, then rebuild. |
+| `SENTRY_AUTH_TOKEN` | optional | Source-map upload at build → readable (un-minified) stack traces. Also needs `SENTRY_ORG` + `SENTRY_PROJECT`. **Leave unset on the EC2 box** — the build path is unchanged without it, so a missing token never breaks the build. Best set in CI. |
+
+- Config lives in [src/instrumentation.ts](../src/instrumentation.ts) (server/edge),
+  [src/lib/sentry-client.ts](../src/lib/sentry-client.ts) +
+  [src/instrumentation-client.ts](../src/instrumentation-client.ts) (browser), with shared
+  PII scrubbing + noise filters in [src/lib/sentry-shared.ts](../src/lib/sentry-shared.ts).
+  `tracesSampleRate` is `0.1`; `environment` comes from `NODE_ENV`; cookies/auth headers and
+  user email/IP are stripped before any event is sent.
+- **Verify capture:** sign in as an admin and `GET /api/debug/sentry-test` — it returns
+  `{ ok: true, eventId }` and the test error appears in your Sentry dashboard. This route is
+  **temporary** and should be deleted before the final ship.
+
+### PostHog (product analytics)
+| Env var | Required? | Turns on |
+|---|---|---|
+| `NEXT_PUBLIC_POSTHOG_KEY` | **yes** | All analytics — pageviews + funnel events. Without it, `track()`/pageview calls are no-ops. **Build-time** (inlined into the client bundle) — set before `pnpm build`. |
+| `NEXT_PUBLIC_POSTHOG_HOST` | optional | PostHog ingestion host. Defaults to `https://us.i.posthog.com`; set to `https://eu.i.posthog.com` for the EU cloud or your self-host URL. |
+
+- Pageviews fire on every route change. Funnel events (stable names):
+  `cta_click`, `sign_in_started`, `sign_in_completed`, `enroll`, `callback_submitted`,
+  `run_code`, `ask_ai`. No PII is sent beyond what PostHog captures by default.
+- Init lives in [src/lib/analytics.ts](../src/lib/analytics.ts), wired via
+  [src/components/providers/observability.tsx](../src/components/providers/observability.tsx).
 
 ---
 

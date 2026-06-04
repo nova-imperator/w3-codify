@@ -35,12 +35,26 @@ function fromAddress(): string {
 /** Send the branded 6-digit OTP email. Returns true if SMTP accepted it. */
 export async function sendOtpEmail(to: string, code: string): Promise<boolean> {
   if (!isSmtpConfigured()) return false;
+  const replyTo = process.env.SMTP_REPLY_TO || (process.env.SMTP_USER ?? "").trim();
   await getTransport().sendMail({
     from: fromAddress(),
     to,
+    replyTo,
     subject: `${code} is your W3Codify sign-in code`,
-    text: `Your W3Codify sign-in code is ${code}. It expires in 10 minutes. If you didn't request this, you can ignore this email.`,
+    text:
+      `Your W3Codify sign-in code is ${code}. It expires in 10 minutes.\n\n` +
+      `You're receiving this because this email address was entered to sign in at ` +
+      `https://w3codify.com. If that wasn't you, you can safely ignore this message.\n\n` +
+      `— W3Codify · Learn. Build. Get Placed.`,
     html: otpHtml(code),
+    // Deliverability signals: a real reply path, a standard unsubscribe handle,
+    // and suppression of auto-replies. (A custom authenticated domain is the
+    // durable fix; these only nudge a Gmail-from-Gmail sender.)
+    headers: {
+      "List-Unsubscribe": `<mailto:${replyTo}?subject=unsubscribe>`,
+      "X-Auto-Response-Suppress": "All",
+      "Auto-Submitted": "auto-generated",
+    },
   });
   return true;
 }

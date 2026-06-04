@@ -56,6 +56,7 @@ export function CoursePlayer({
   assessments,
   initialProgress,
   submissions,
+  aiTutorEnabled = true,
 }: {
   courseId: string;
   courseTitle: string;
@@ -68,6 +69,7 @@ export function CoursePlayer({
     certificate?: { at: string; scorePct: number } | null;
   };
   submissions?: SavedCode;
+  aiTutorEnabled?: boolean;
 }) {
   const flat = React.useMemo(() => sections.flatMap((s) => s.lessons), [sections]);
   const [lp, setLp] = React.useState<Record<string, Lp>>(initialProgress.lessons ?? {});
@@ -80,8 +82,8 @@ export function CoursePlayer({
   const [tutorOpen, setTutorOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (window.matchMedia("(min-width: 1280px)").matches) setTutorOpen(true);
-  }, []);
+    if (aiTutorEnabled && window.matchMedia("(min-width: 1280px)").matches) setTutorOpen(true);
+  }, [aiTutorEnabled]);
 
   const total = flat.length;
   const completedCount = flat.filter((l) => lp[l.id]?.completed).length;
@@ -116,7 +118,7 @@ export function CoursePlayer({
             <ListVideo className="size-4" /> Contents
           </button>
           <span className="text-xs text-fg-faint">{percent}% complete</span>
-          {activeLesson && (
+          {activeLesson && aiTutorEnabled && (
             <button onClick={() => setTutorOpen(true)} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand">
               <Sparkles className="size-4" /> AI Tutor
             </button>
@@ -166,10 +168,10 @@ export function CoursePlayer({
       </main>
 
       {/* Tutor dock */}
-      {tutorOpen && activeLesson && (
+      {aiTutorEnabled && tutorOpen && activeLesson && (
         <div className="fixed inset-0 z-40 bg-black/60 xl:hidden" onClick={() => setTutorOpen(false)} />
       )}
-      {activeLesson && (
+      {aiTutorEnabled && activeLesson && (
         <aside
           className={cn(
             "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-bg transition-transform xl:sticky xl:top-16 xl:z-auto xl:h-[calc(100dvh-4rem)] xl:w-[380px] xl:translate-x-0",

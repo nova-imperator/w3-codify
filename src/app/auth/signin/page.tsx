@@ -14,15 +14,19 @@ const googleEnabled =
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; reauth?: string }>;
 }) {
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, reauth } = await searchParams;
   const dest = callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/classroom";
 
   return (
     <AuthShell
       title="Sign in or sign up"
-      subtitle="Enter your email and we'll send you a one-time code. No password."
+      subtitle={
+        reauth
+          ? "Your admin session expired for security. Sign in again to continue."
+          : "Enter your email and we'll send you a one-time code. No password."
+      }
       footer={
         <>
           By continuing you agree to our{" "}

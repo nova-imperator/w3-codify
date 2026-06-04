@@ -1,6 +1,14 @@
 import type { NextAuthConfig } from "next-auth";
 import type { Gender, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getClientIp, isIpAllowed } from "@/lib/ip";
+
+/** Admin session is stale once older than ADMIN_SESSION_MAX_MIN (default 60). */
+function adminSessionStale(loginAt?: number): boolean {
+  const maxMin = Number(process.env.ADMIN_SESSION_MAX_MIN ?? 60);
+  if (!Number.isFinite(maxMin) || maxMin <= 0 || !loginAt) return false;
+  return Date.now() - loginAt > maxMin * 60_000;
+}
 
 /**
  * Edge-safe auth config — no Prisma, no provider logic. Used by middleware
@@ -19,6 +27,7 @@ export const authConfig = {
         token.role = u.role;
         token.gender = u.gender ?? "UNSPECIFIED";
         token.avatarUrl = u.avatarUrl ?? null;
+        token.loginAt = Date.now(); // for admin session-age hardening (§11)
       }
       // Optimistic client patches (profile/onboarding) call `update({ gender, avatarUrl })`
       // so the navbar avatar refreshes without a re-login or extra query.
@@ -40,6 +49,7 @@ export const authConfig = {
       su.role = token.role as Role | undefined;
       su.gender = (token.gender as Gender | undefined) ?? "UNSPECIFIED";
       su.avatarUrl = (token.avatarUrl as string | null | undefined) ?? null;
+      (su as { loginAt?: number }).loginAt = token.loginAt as number | undefined;
       return session;
     },
     authorized({ auth, request }) {
@@ -60,12 +70,40 @@ export const authConfig = {
         return NextResponse.redirect(url, 301);
       }
 
-      if (pathname.startsWith("/admin")) {
-        if (role === "ADMIN") return true;
-        // Logged-in non-admin -> home; anonymous -> sign in (with callback).
+      const isAdminPage = pathname.startsWith("/admin");
+      const isAdminApi = pathname.startsWith("/api/admin");
+
+      if (isAdminPage || isAdminApi) {
+        // 1) Optional IP allowlist (opt-in). Unset → no restriction. Applies to
+        //    everyone, before auth, so blocked IPs never even reach sign-in.
+        const allowlist = process.env.ADMIN_IP_ALLOWLIST?.trim();
+        if (allowlist && !isIpAllowed(getClientIp(request.headers), allowlist)) {
+          return new NextResponse("Forbidden", { status: 403 });
+        }
+
+        const loginAt = (auth?.user as { loginAt?: number } | undefined)?.loginAt;
+
+        // 2) API: status codes (no redirects).
+        if (isAdminApi) {
+          if (role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
+          if (adminSessionStale(loginAt)) return new NextResponse("Session expired", { status: 401 });
+          return true;
+        }
+
+        // 3) Pages.
+        if (role === "ADMIN") {
+          if (adminSessionStale(loginAt)) {
+            const url = new URL("/auth/signin", request.nextUrl);
+            url.searchParams.set("callbackUrl", pathname);
+            url.searchParams.set("reauth", "1");
+            return NextResponse.redirect(url);
+          }
+          return true;
+        }
         if (isLoggedIn) return NextResponse.redirect(new URL("/", request.nextUrl));
         return false;
       }
+
       if (pathname.startsWith("/profile") || pathname.startsWith("/classroom")) {
         return isLoggedIn;
       }

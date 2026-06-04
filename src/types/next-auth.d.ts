@@ -8,6 +8,7 @@ declare module "next-auth" {
       role: Role;
       gender: Gender;
       avatarUrl?: string | null;
+      loginAt?: number; // epoch ms of the login that minted this session
     } & DefaultSession["user"];
   }
   interface User {
@@ -23,5 +24,6 @@ declare module "next-auth/jwt" {
     role?: Role;
     gender?: Gender;
     avatarUrl?: string | null;
+    loginAt?: number;
   }
 }

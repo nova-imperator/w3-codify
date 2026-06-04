@@ -7,6 +7,7 @@ export const { auth: middleware } = NextAuth(authConfig);
 export const config = {
   matcher: [
     "/admin/:path*",
+    "/api/admin/:path*",
     "/profile/:path*",
     "/classroom/:path*",
     "/bootcamp",

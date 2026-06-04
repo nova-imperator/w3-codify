@@ -148,8 +148,31 @@ async function main() {
     );
   }
 
+  await seedFeatureFlags();
   await seedAdminAndDemo();
   console.log("✓ seed complete");
+}
+
+// Idempotent feature-flag seed. Keep keys + defaults in sync with
+// src/server/flags.ts (FLAG_DEFS); never clobber an admin-set `enabled`.
+async function seedFeatureFlags() {
+  const flags: { key: string; enabled: boolean; description: string }[] = [
+    { key: "maintenance_mode", enabled: false, description: "Show a friendly maintenance page to everyone except admins." },
+    { key: "new_signups", enabled: true, description: "Allow new accounts to be created at sign-in. Existing users always sign in." },
+    { key: "paid_pricing", enabled: false, description: "Show real prices and checkout. When off, every course is FREE (launch offer)." },
+    { key: "ai_tutor", enabled: true, description: "Show the context-aware AI tutor inside lessons." },
+    { key: "chatbot", enabled: true, description: "Show the floating site assistant on every page." },
+    { key: "code_playground", enabled: true, description: "Show /playground and the in-lesson runnable code exercises." },
+    { key: "course_reviews", enabled: false, description: "Reserved for a future student reviews feature." },
+  ];
+  for (const f of flags) {
+    await prisma.featureFlag.upsert({
+      where: { key: f.key },
+      create: f,
+      update: { description: f.description },
+    });
+  }
+  console.log(`feature flags: ${flags.length}`);
 }
 
 // Admin account + demo students/enrollments/leads so the panel is populated.

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Play, Loader2, Share2, Terminal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -65,6 +66,7 @@ export function Playground() {
     if (running) return;
     setRunning(true);
     setResult(null);
+    track("run_code", { language: lang });
     try {
       const res = await fetch("/api/run", {
         method: "POST",

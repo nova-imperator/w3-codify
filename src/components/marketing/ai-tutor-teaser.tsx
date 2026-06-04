@@ -7,6 +7,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
 import { GradientText } from "@/components/ui/gradient-text";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 const SUGGESTIONS = [
   "Why is my useEffect running twice?",
@@ -35,6 +36,7 @@ export function AiTutorTeaser() {
     setInput("");
     setMessages((m) => [...m, { role: "user", text: q }, { role: "ai", text: "" }]);
     setStreaming(true);
+    track("ask_ai", { surface: "marketing_teaser" });
 
     const setLast = (text: string) =>
       setMessages((m) => {

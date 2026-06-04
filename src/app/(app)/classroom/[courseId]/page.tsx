@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { Lock } from "lucide-react";
 import { getCoursePlayer } from "@/server/classroom";
+import { isFeatureEnabled } from "@/server/flags";
 import { CoursePlayer } from "@/components/classroom/course-player";
 import { Button } from "@/components/ui/button";
 import type { RenderBlock } from "@/components/classroom/lesson-blocks";
@@ -35,6 +36,11 @@ export default async function CoursePlayerPage({
   }
 
   const { course, progress, submissions } = result;
+  // code_playground off → strip in-lesson runnable exercises; ai_tutor off → hide the dock.
+  const [playgroundOn, aiTutorOn] = await Promise.all([
+    isFeatureEnabled("code_playground"),
+    isFeatureEnabled("ai_tutor"),
+  ]);
   const sections = course.sections.map((s) => ({
     id: s.id,
     title: s.title,
@@ -45,7 +51,9 @@ export default async function CoursePlayerPage({
       isFreePreview: l.isFreePreview,
       videoUrl: l.videoUrl,
       sectionTitle: s.title,
-      blocks: l.blocks.map<RenderBlock>((b) => ({
+      blocks: l.blocks
+        .filter((b) => playgroundOn || b.type !== "CODE_EXERCISE")
+        .map<RenderBlock>((b) => ({
         id: b.id,
         type: b.type,
         // CODE_EXERCISE: never ship the reference solution or hidden test
@@ -76,6 +84,7 @@ export default async function CoursePlayerPage({
       assessments={assessments}
       initialProgress={progress}
       submissions={submissions}
+      aiTutorEnabled={aiTutorOn}
     />
   );
 }

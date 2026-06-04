@@ -329,6 +329,16 @@ model AdminAuditLog {
   createdAt DateTime @default(now())
 }
 
+// Admin-toggleable feature flags (feature-flags feature). Defaults + descriptions
+// live in src/server/flags.ts; a missing row falls back to that default. Read
+// server-side with a short cache; toggled in /admin/settings (audit-logged).
+model FeatureFlag {
+  key         String   @id
+  enabled     Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
 // ----------------------------------------------------------------------------
 // AI tutor threads (Session 5)
 // ----------------------------------------------------------------------------

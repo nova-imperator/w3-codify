@@ -14,6 +14,7 @@ import { OrDivider } from "./auth-shell";
 import { GoogleButton } from "./google-button";
 import { DevCodeNotice } from "./dev-code-notice";
 import { getOnboardingStatus, completeOnboarding } from "@/server/onboarding";
+import { track } from "@/lib/analytics";
 
 function fmtPhone(d: string) {
   const x = d.replace(/\D/g, "").slice(0, 10);
@@ -76,6 +77,7 @@ export function SignInForm({
       setStep("otp");
       setCooldown(30);
       setDevCode(data.devCode ?? null);
+      track("sign_in_started", { method: "email_otp" });
       toast.success(data.delivered ? "Code sent — check your email" : "Code generated");
     } catch {
       setError("Something went wrong. Please try again.");
@@ -96,6 +98,7 @@ export function SignInForm({
         setCode("");
         return;
       }
+      track("sign_in_completed", { method: "email_otp" });
       // First login only: show the welcome step; returning users go straight in.
       const { needsOnboarding } = await getOnboardingStatus();
       if (needsOnboarding) {

@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import { verifyEmailOtp } from "@/server/otp";
+import { isFeatureEnabled } from "@/server/flags";
 import { normalizeEmail, isValidEmail } from "@/lib/otp";
 
 const googleConfigured =
@@ -28,6 +29,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Passwordless: sign in if the email exists, else create the account.
         const existing = await prisma.user.findUnique({ where: { email } });
+        // Defense in depth: if new sign-ups are paused, never create an account
+        // (the send route already blocks this earlier).
+        if (!existing && !(await isFeatureEnabled("new_signups"))) return null;
         const user =
           existing ??
           (await prisma.user.create({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/server/session";
+import { isFeatureEnabled } from "@/server/flags";
 import { rateLimit } from "@/lib/rate-limit";
 import {
   streamChat,
@@ -27,6 +28,10 @@ const schema = z.object({
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+
+  if (!(await isFeatureEnabled("ai_tutor"))) {
+    return NextResponse.json({ error: "The AI tutor is currently unavailable." }, { status: 403 });
+  }
 
   const rl = rateLimit(`ai:chat:${user.id}`, 30, 60_000);
   if (!rl.ok) {

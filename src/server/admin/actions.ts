@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/server/session";
 import { logAction } from "@/server/admin/audit";
 import { slugify } from "@/lib/utils";
+import { setFlag, FLAG_KEYS, type FlagKey } from "@/server/flags";
 import type { BlockType, Prisma } from "@prisma/client";
 
 export type ActionResult<T = void> =
@@ -158,11 +159,12 @@ export async function createSection(
   title: string,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    await admin();
+    const actorId = await admin();
     const count = await prisma.section.count({ where: { courseId } });
     const section = await prisma.section.create({
       data: { courseId, title: title.trim() || "New section", order: count },
     });
+    await logAction(actorId, "create", "Section", section.id, { courseId });
     return { ok: true, data: { id: section.id } };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -171,8 +173,9 @@ export async function createSection(
 
 export async function updateSection(id: string, title: string): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.section.update({ where: { id }, data: { title: title.trim() } });
+    await logAction(actorId, "update", "Section", id, { title: title.trim() });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -181,8 +184,9 @@ export async function updateSection(id: string, title: string): Promise<ActionRe
 
 export async function deleteSection(id: string): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.section.delete({ where: { id } });
+    await logAction(actorId, "delete", "Section", id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -191,10 +195,11 @@ export async function deleteSection(id: string): Promise<ActionResult> {
 
 export async function reorderSections(ids: string[]): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.$transaction(
       ids.map((id, order) => prisma.section.update({ where: { id }, data: { order } })),
     );
+    await logAction(actorId, "reorder", "Section", null, { count: ids.length });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -214,11 +219,12 @@ export async function createLesson(
   title: string,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    await admin();
+    const actorId = await admin();
     const count = await prisma.lesson.count({ where: { sectionId } });
     const lesson = await prisma.lesson.create({
       data: { sectionId, title: title.trim() || "New lesson", order: count },
     });
+    await logAction(actorId, "create", "Lesson", lesson.id, { sectionId });
     return { ok: true, data: { id: lesson.id } };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -227,7 +233,7 @@ export async function createLesson(
 
 export async function updateLesson(id: string, input: z.infer<typeof lessonSchema>): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     const data = lessonSchema.parse(input);
     await prisma.lesson.update({
       where: { id },
@@ -238,6 +244,7 @@ export async function updateLesson(id: string, input: z.infer<typeof lessonSchem
         videoUrl: data.videoUrl || null,
       },
     });
+    await logAction(actorId, "update", "Lesson", id, { title: data.title });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -246,8 +253,9 @@ export async function updateLesson(id: string, input: z.infer<typeof lessonSchem
 
 export async function deleteLesson(id: string): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.lesson.delete({ where: { id } });
+    await logAction(actorId, "delete", "Lesson", id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -256,10 +264,11 @@ export async function deleteLesson(id: string): Promise<ActionResult> {
 
 export async function reorderLessons(ids: string[]): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.$transaction(
       ids.map((id, order) => prisma.lesson.update({ where: { id }, data: { order } })),
     );
+    await logAction(actorId, "reorder", "Lesson", null, { count: ids.length });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -272,7 +281,7 @@ export async function createBlock(
   type: BlockType,
 ): Promise<ActionResult<{ id: string; data: Prisma.JsonValue }>> {
   try {
-    await admin();
+    const actorId = await admin();
     const count = await prisma.lessonBlock.count({ where: { lessonId } });
     const defaults: Record<string, Prisma.InputJsonValue> = {
       TEXT: { md: "" },
@@ -287,6 +296,7 @@ export async function createBlock(
     const block = await prisma.lessonBlock.create({
       data: { lessonId, type, order: count, data: defaults[type] ?? {} },
     });
+    await logAction(actorId, "create", "LessonBlock", block.id, { type, lessonId });
     return { ok: true, data: { id: block.id, data: block.data } };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -299,11 +309,12 @@ export async function updateBlock(
   mediaId?: string | null,
 ): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.lessonBlock.update({
       where: { id },
       data: { data: data as Prisma.InputJsonValue, ...(mediaId !== undefined ? { mediaId } : {}) },
     });
+    await logAction(actorId, "update", "LessonBlock", id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -312,8 +323,9 @@ export async function updateBlock(
 
 export async function deleteBlock(id: string): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.lessonBlock.delete({ where: { id } });
+    await logAction(actorId, "delete", "LessonBlock", id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -322,10 +334,11 @@ export async function deleteBlock(id: string): Promise<ActionResult> {
 
 export async function reorderBlocks(ids: string[]): Promise<ActionResult> {
   try {
-    await admin();
+    const actorId = await admin();
     await prisma.$transaction(
       ids.map((id, order) => prisma.lessonBlock.update({ where: { id }, data: { order } })),
     );
+    await logAction(actorId, "reorder", "LessonBlock", null, { count: ids.length });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -373,6 +386,31 @@ export async function deleteInstructor(id: string): Promise<ActionResult> {
     await prisma.instructor.delete({ where: { id } });
     await logAction(actorId, "delete", "Instructor", id);
     revalidatePath("/admin/instructors");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+// ─────────────────────────── Users / roles ───────────────────────────
+export async function setUserRole(userId: string, makeAdmin: boolean): Promise<ActionResult> {
+  try {
+    const actorId = await admin();
+    if (userId === actorId && !makeAdmin) {
+      return { ok: false, error: "You can't revoke your own admin access." };
+    }
+    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!target) return { ok: false, error: "User not found." };
+
+    const role = makeAdmin ? "ADMIN" : "STUDENT";
+    if (target.role === role) return { ok: true }; // no-op
+
+    await prisma.user.update({ where: { id: userId }, data: { role } });
+    await logAction(actorId, makeAdmin ? "promote" : "revoke", "User", userId, {
+      from: target.role,
+      to: role,
+    });
+    revalidatePath("/admin/students");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
@@ -429,6 +467,22 @@ export async function deleteMedia(id: string): Promise<ActionResult> {
     await prisma.mediaAsset.delete({ where: { id } });
     await logAction(actorId, "delete", "MediaAsset", id);
     revalidatePath("/admin/media");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+// ─────────────────────────── Feature flags ───────────────────────────
+export async function toggleFeatureFlag(key: string, enabled: boolean): Promise<ActionResult> {
+  try {
+    const actorId = await admin();
+    if (!FLAG_KEYS.includes(key as FlagKey)) return { ok: false, error: "Unknown flag." };
+    await setFlag(key as FlagKey, enabled);
+    await logAction(actorId, "toggle", "FeatureFlag", key, { enabled });
+    // Bust full-route caches so flag-gated pages (esp. maintenance) flip immediately.
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/settings");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };

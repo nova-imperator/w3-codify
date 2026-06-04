@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/server/session";
+import { isFeatureEnabled } from "@/server/flags";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { streamChat, STREAM_HEADERS, buildAssistantSystem, getCourseCatalog } from "@/server/ai";
 
@@ -18,6 +19,10 @@ const schema = z.object({
 // POST /api/ai/assistant — the floating site chatbot (§8.0). Public: works
 // signed-out (tighter IP limit) and signed-in (higher per-user limit). Streams.
 export async function POST(req: Request) {
+  if (!(await isFeatureEnabled("chatbot"))) {
+    return NextResponse.json({ error: "The assistant is currently unavailable." }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
 
   // Signed-in users get a generous per-user budget; anonymous visitors a lighter per-IP one.

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 import { sendEmailOtp } from "@/server/otp";
+import { isFeatureEnabled } from "@/server/flags";
 import { normalizeEmail, isValidEmail } from "@/lib/otp";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
@@ -31,6 +33,18 @@ export async function POST(req: Request) {
       { error: "Too many requests. Please try again later." },
       { status: 429 },
     );
+  }
+
+  // Feature flag: when new sign-ups are paused, existing users can still sign in
+  // but a brand-new email can't create an account.
+  if (!(await isFeatureEnabled("new_signups"))) {
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "New sign-ups are paused right now. Please check back soon." },
+        { status: 403 },
+      );
+    }
   }
 
   const result = await sendEmailOtp(email);

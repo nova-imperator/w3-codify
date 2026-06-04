@@ -5,7 +5,9 @@ import { SessionProvider } from "next-auth/react";
 import { fontVariables } from "@/lib/fonts";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { Observability } from "@/components/providers/observability";
+import { FlagsProvider } from "@/components/providers/flags-provider";
 import { SiteChatbot } from "@/components/marketing/site-chatbot";
+import { getPublicFlags } from "@/server/flags";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -53,9 +55,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const flags = await getPublicFlags();
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
@@ -69,8 +72,10 @@ export default function RootLayout({
           <Observability />
         </Suspense>
         <SessionProvider>
-          <SmoothScroll>{children}</SmoothScroll>
-          <SiteChatbot />
+          <FlagsProvider value={flags}>
+            <SmoothScroll>{children}</SmoothScroll>
+            <SiteChatbot />
+          </FlagsProvider>
         </SessionProvider>
         <Toaster
           position="bottom-right"

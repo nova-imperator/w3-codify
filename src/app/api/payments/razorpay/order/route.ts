@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
+import { isFeatureEnabled } from "@/server/flags";
 import { isRazorpayConfigured, getRazorpay } from "@/lib/razorpay";
 
 const schema = z.object({ courseId: z.string().min(1) });
@@ -14,6 +15,11 @@ export async function POST(req: Request) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+
+  // paid_pricing off → all courses are free; refuse paid checkout.
+  if (!(await isFeatureEnabled("paid_pricing"))) {
+    return NextResponse.json({ error: "Courses are free right now — just enroll." }, { status: 400 });
+  }
 
   const course = await prisma.course.findFirst({
     where: { id: parsed.data.courseId, status: "PUBLISHED" },

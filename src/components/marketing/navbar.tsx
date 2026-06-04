@@ -7,7 +7,9 @@ import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { Menu, PhoneCall } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 import { NAV_LINKS } from "@/lib/site";
+import { useFlags } from "@/components/providers/flags-provider";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/ui/magnetic";
@@ -19,9 +21,13 @@ export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
+  const { code_playground } = useFlags();
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  // Hide the Playground link when its feature flag is off.
+  const navLinks = NAV_LINKS.filter((l) => l.href !== "/playground" || code_playground);
 
   useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 24));
 
@@ -47,7 +53,7 @@ export function Navbar() {
           aria-label="Primary"
           className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-bg-elevated/60 p-1 backdrop-blur-md lg:flex"
         >
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const active = pathname === link.href;
             return (
               <Link
@@ -83,7 +89,12 @@ export function Navbar() {
           ) : (
             <Magnetic>
               <Button asChild variant="gradient" size="sm">
-                <Link href="/auth/signin">Sign In</Link>
+                <Link
+                  href="/auth/signin"
+                  onClick={() => track("cta_click", { cta: "sign_in", location: "navbar" })}
+                >
+                  Sign In
+                </Link>
               </Button>
             </Magnetic>
           )}
@@ -100,7 +111,7 @@ export function Navbar() {
             <SheetContent>
               <Logo />
               <nav className="mt-2 flex flex-col gap-1" aria-label="Mobile">
-                {NAV_LINKS.map((link) => (
+                {navLinks.map((link) => (
                   <SheetClose asChild key={link.href}>
                     <Link
                       href={link.href}
@@ -153,7 +164,12 @@ export function Navbar() {
                 ) : (
                   <SheetClose asChild>
                     <Button asChild variant="gradient" size="lg" className="w-full">
-                      <Link href="/auth/signin">Sign In</Link>
+                      <Link
+                        href="/auth/signin"
+                        onClick={() => track("cta_click", { cta: "sign_in", location: "navbar_mobile" })}
+                      >
+                        Sign In
+                      </Link>
                     </Button>
                   </SheetClose>
                 )}

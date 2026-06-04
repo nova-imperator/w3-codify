@@ -11,6 +11,7 @@ import {
   GraduationCap,
   PhoneCall,
   ImageIcon,
+  ScrollText,
   Settings,
   Menu,
   X,
@@ -30,6 +31,7 @@ const NAV = [
   { label: "Students", href: "/admin/students", icon: GraduationCap },
   { label: "Leads", href: "/admin/leads", icon: PhoneCall },
   { label: "Media", href: "/admin/media", icon: ImageIcon },
+  { label: "Audit", href: "/admin/audit", icon: ScrollText },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

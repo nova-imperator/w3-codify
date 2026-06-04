@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -50,4 +51,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Source-map upload to Sentry is OPTIONAL and OFF unless SENTRY_AUTH_TOKEN is
+// set. The tiny EC2 box never sets it, so production builds keep the exact same
+// (already-fragile) build path. Set the token + org/project in CI to get
+// readable stack traces. Without it, withSentryConfig is never invoked.
+export default process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      telemetry: false,
+      widenClientFileUpload: true,
+      sourcemaps: { deleteSourcemapsAfterUpload: true },
+      disableLogger: true,
+    })
+  : nextConfig;

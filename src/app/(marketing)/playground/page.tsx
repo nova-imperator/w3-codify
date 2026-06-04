@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Code2 } from "lucide-react";
+import { notFound } from "next/navigation";
 import { Playground } from "@/components/playground/playground";
+import { isFeatureEnabled } from "@/server/flags";
 
 export const metadata: Metadata = {
   title: "Code Playground",
@@ -8,7 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/playground" },
 };
 
-export default function PlaygroundPage() {
+export default async function PlaygroundPage() {
+  if (!(await isFeatureEnabled("code_playground"))) notFound();
   return (
     <main id="main" className="container-page pb-16 pt-28 md:pt-32">
       <div className="mb-6 flex flex-col gap-2">

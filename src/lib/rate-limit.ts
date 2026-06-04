@@ -2,6 +2,8 @@
  * Tiny in-process sliding-window rate limiter (BUILD_SPEC §8, §11).
  * Good enough for a single PM2 instance; swap for Upstash/Redis when scaling out.
  */
+import { getClientIp } from "@/lib/ip";
+
 const hits = new Map<string, number[]>();
 
 export function rateLimit(
@@ -22,9 +24,7 @@ export function rateLimit(
 }
 
 export function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  return getClientIp(req.headers) || "unknown";
 }
 
 // Occasionally drop stale buckets so the map doesn't grow unbounded.

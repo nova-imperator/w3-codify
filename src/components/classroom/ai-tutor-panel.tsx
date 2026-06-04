@@ -5,6 +5,7 @@ import { Sparkles, Send, User, Loader2 } from "lucide-react";
 import { Markdown } from "@/components/shared/markdown";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 type Msg = { role: "user" | "ai"; text: string };
 
@@ -38,6 +39,7 @@ export function AiTutorPanel({
     setInput("");
     setMessages((m) => [...m, { role: "user", text: q }, { role: "ai", text: "" }]);
     setStreaming(true);
+    track("ask_ai", { surface: "classroom_tutor", courseId, lessonId });
 
     try {
       const res = await fetch("/api/ai/chat", {

@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, User, X, Loader2, MessageCircle } from "lucide-react";
 import { Markdown } from "@/components/shared/markdown";
 import { Button } from "@/components/ui/button";
+import { useFlags } from "@/components/providers/flags-provider";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 type Msg = { role: "user" | "ai"; text: string };
 
@@ -23,6 +25,7 @@ const SUGGESTIONS = [
 
 export function SiteChatbot() {
   const pathname = usePathname();
+  const { chatbot } = useFlags();
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [streaming, setStreaming] = React.useState(false);
@@ -46,6 +49,8 @@ export function SiteChatbot() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Hidden entirely when the chatbot feature flag is off.
+  if (!chatbot) return null;
   // The in-classroom lesson player has its own context-aware AI Tutor dock,
   // so we don't stack a second assistant on top of it there.
   if (pathname?.startsWith("/classroom/")) return null;
@@ -61,6 +66,7 @@ export function SiteChatbot() {
 
     setMessages((m) => [...m, { role: "user", text: q }, { role: "ai", text: "" }]);
     setStreaming(true);
+    track("ask_ai", { surface: "site_chatbot" });
 
     const setLast = (text: string) =>
       setMessages((m) => {

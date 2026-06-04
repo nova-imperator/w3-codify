@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/server/session";
+import type { Prisma } from "@prisma/client";
 
 export async function getAdminStats() {
   await requireAdmin();
@@ -90,21 +91,19 @@ export async function getAdminInstructors() {
 
 export async function getAdminStudents(q?: string) {
   await requireAdmin();
+  // All users (incl. admins) so roles can be managed here; admins first.
   return prisma.user.findMany({
-    where: {
-      role: "STUDENT",
-      ...(q
-        ? {
-            OR: [
-              { firstName: { contains: q, mode: "insensitive" } },
-              { lastName: { contains: q, mode: "insensitive" } },
-              { email: { contains: q, mode: "insensitive" } },
-              { phone: { contains: q } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: "desc" },
+    where: q
+      ? {
+          OR: [
+            { firstName: { contains: q, mode: "insensitive" } },
+            { lastName: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+            { phone: { contains: q } },
+          ],
+        }
+      : {},
+    orderBy: [{ role: "asc" }, { createdAt: "desc" }],
     include: {
       _count: { select: { enrollments: true } },
       enrollments: { include: { course: { select: { title: true } } } },
@@ -124,4 +123,56 @@ export async function getAdminMedia() {
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { blocks: true } } },
   });
+}
+
+// ─────────────────────────── Audit log (§6.9) ───────────────────────────
+const AUDIT_PER_PAGE = 50;
+
+export async function getAuditLog(opts: { page?: number; action?: string; entity?: string } = {}) {
+  await requireAdmin();
+  const page = Math.max(1, opts.page ?? 1);
+  const where: Prisma.AdminAuditLogWhereInput = {};
+  if (opts.action) where.action = opts.action;
+  if (opts.entity) where.entity = opts.entity;
+
+  const [total, logs, actionGroups, entityGroups] = await Promise.all([
+    prisma.adminAuditLog.count({ where }),
+    prisma.adminAuditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * AUDIT_PER_PAGE,
+      take: AUDIT_PER_PAGE,
+    }),
+    prisma.adminAuditLog.findMany({ distinct: ["action"], select: { action: true }, orderBy: { action: "asc" } }),
+    prisma.adminAuditLog.findMany({ distinct: ["entity"], select: { entity: true }, orderBy: { entity: "asc" } }),
+  ]);
+
+  // Resolve actor names (actorId is a plain id, not a relation).
+  const actorIds = [...new Set(logs.map((l) => l.actorId))];
+  const actors = actorIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      })
+    : [];
+  const actorMap = new Map(
+    actors.map((a) => [a.id, [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email || a.id]),
+  );
+
+  return {
+    logs: logs.map((l) => ({
+      id: l.id,
+      action: l.action,
+      entity: l.entity,
+      entityId: l.entityId,
+      meta: l.meta,
+      actor: actorMap.get(l.actorId) ?? l.actorId,
+      createdAt: l.createdAt.toISOString(),
+    })),
+    total,
+    page,
+    pageCount: Math.max(1, Math.ceil(total / AUDIT_PER_PAGE)),
+    actions: actionGroups.map((a) => a.action),
+    entities: entityGroups.map((e) => e.entity),
+  };
 }

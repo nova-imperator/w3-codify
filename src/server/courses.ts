@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isFeatureEnabled } from "@/server/flags";
 import type { Level } from "@prisma/client";
 
 /** Normalized shape consumed by CourseCard (decouples UI from the DB row). */
@@ -85,11 +86,17 @@ export function toCardData(c: CourseWithInstructorNames): CourseCardData {
 
 /** All published courses, ranked for the catalog/home (live + popular first). */
 export async function getPublishedCourses() {
-  return prisma.course.findMany({
+  const courses = await prisma.course.findMany({
     where: { status: "PUBLISHED" },
     orderBy: [{ isLive: "desc" }, { learners: "desc" }],
     include: { instructors: { select: { name: true } } },
   });
+  // paid_pricing off → everything is FREE (launch offer). Zero the price so every
+  // pricing surface (cards, enroll card) renders the free/launch state.
+  if (!(await isFeatureEnabled("paid_pricing"))) {
+    for (const c of courses) c.priceInr = 0;
+  }
+  return courses;
 }
 
 export async function getPublishedCourseCards(): Promise<CourseCardData[]> {
@@ -99,7 +106,7 @@ export async function getPublishedCourseCards(): Promise<CourseCardData[]> {
 
 /** Full course detail (curriculum + instructors) for the single-course page. */
 export async function getCourseBySlug(slug: string) {
-  return prisma.course.findFirst({
+  const course = await prisma.course.findFirst({
     where: { slug, status: "PUBLISHED" },
     include: {
       instructors: true,
@@ -109,6 +116,9 @@ export async function getCourseBySlug(slug: string) {
       },
     },
   });
+  // paid_pricing off → free during launch (see getPublishedCourses).
+  if (course && !(await isFeatureEnabled("paid_pricing"))) course.priceInr = 0;
+  return course;
 }
 
 export async function getPublishedSlugs(): Promise<string[]> {
