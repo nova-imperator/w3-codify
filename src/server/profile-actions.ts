@@ -25,6 +25,7 @@ const basicSchema = z.object({
   state: z.string().trim().max(80).optional().or(z.literal("")),
   pincode: z.string().trim().max(12).optional().or(z.literal("")),
   country: z.string().trim().max(80).optional().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE", "UNSPECIFIED"]).optional(),
 });
 
 export async function updateBasicInfo(input: z.infer<typeof basicSchema>): Promise<ActionResult> {
@@ -49,6 +50,7 @@ export async function updateBasicInfo(input: z.infer<typeof basicSchema>): Promi
         state: d.state || null,
         pincode: d.pincode || null,
         country: d.country || null,
+        gender: d.gender ?? undefined,
       },
     });
     revalidatePath("/profile");

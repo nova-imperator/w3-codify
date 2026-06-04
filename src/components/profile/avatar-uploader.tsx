@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Camera, Loader2, Link as LinkIcon } from "lucide-react";
+import { resolveAvatarUrl, type Gender } from "@/lib/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,16 +21,21 @@ import { setAvatar } from "@/server/profile-actions";
 export function AvatarUploader({
   name,
   avatarUrl,
+  gender,
   s3Configured,
 }: {
   name: string;
   avatarUrl: string | null;
+  gender: Gender;
   s3Configured: boolean;
 }) {
   const router = useRouter();
+  const { update } = useSession();
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [busy, setBusy] = React.useState(false);
   const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "U";
+  // Custom upload wins; otherwise fall back to the gender default (or initials).
+  const displayUrl = resolveAvatarUrl({ avatarUrl, gender });
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -52,6 +59,7 @@ export function AvatarUploader({
       if (!put.ok) throw new Error("upload failed");
       const res = await setAvatar(presign.publicUrl);
       if (res.ok) {
+        await update({ avatarUrl: presign.publicUrl });
         toast.success("Photo updated");
         router.refresh();
       } else toast.error(res.error);
@@ -67,8 +75,8 @@ export function AvatarUploader({
     <div className="flex flex-col items-center gap-3">
       <div className="relative">
         <div className="size-24 overflow-hidden rounded-full border-2 border-brand/30 bg-bg-subtle">
-          {avatarUrl ? (
-            <Image src={avatarUrl} alt={name} width={96} height={96} className="size-full object-cover" unoptimized />
+          {displayUrl ? (
+            <Image src={displayUrl} alt={name} width={96} height={96} className="size-full object-cover" unoptimized />
           ) : (
             <div className="grid size-full place-items-center font-display text-2xl font-bold text-fg-muted">
               {initials}
@@ -94,6 +102,7 @@ export function AvatarUploader({
 }
 
 function UrlDialog({ onSaved }: { onSaved: () => void }) {
+  const { update } = useSession();
   const [open, setOpen] = React.useState(false);
   const [url, setUrl] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -103,6 +112,7 @@ function UrlDialog({ onSaved }: { onSaved: () => void }) {
     const res = await setAvatar(url);
     setBusy(false);
     if (res.ok) {
+      await update({ avatarUrl: url || null });
       toast.success("Photo updated");
       setOpen(false);
       onSaved();

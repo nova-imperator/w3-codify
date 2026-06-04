@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { GraduationCap, User, LogOut, ShieldCheck } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfileAvatar } from "@/components/shared/profile-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,17 +17,11 @@ type SessionUser = {
   name?: string | null;
   email?: string | null;
   role?: "STUDENT" | "INSTRUCTOR" | "ADMIN";
+  gender?: "MALE" | "FEMALE" | "UNSPECIFIED" | null;
+  avatarUrl?: string | null;
 };
 
 export function UserMenu({ user }: { user: SessionUser }) {
-  const initials =
-    (user.name ?? "U")
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "U";
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,9 +29,12 @@ export function UserMenu({ user }: { user: SessionUser }) {
           aria-label="Account menu"
           className="rounded-full outline-none ring-offset-bg transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <Avatar className="size-9 border-brand/30">
-            <AvatarFallback className="bg-brand/15 text-brand">{initials}</AvatarFallback>
-          </Avatar>
+          <ProfileAvatar
+            user={user}
+            size={36}
+            className="size-9 border-brand/30"
+            fallbackClassName="bg-brand/15 text-brand"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52">

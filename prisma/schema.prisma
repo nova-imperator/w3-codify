@@ -24,6 +24,7 @@ model User {
   emailVerified DateTime?
   onboardedAt   DateTime? // set on first-login onboarding (completed OR skipped)
   avatarUrl     String?
+  gender        Gender    @default(UNSPECIFIED)
   role          Role      @default(STUDENT)
   bio           String?
   dateOfBirth   DateTime?
@@ -57,6 +58,14 @@ enum Role {
   STUDENT
   INSTRUCTOR
   ADMIN
+}
+
+// Drives the default profile avatar (gender-avatar feature). UNSPECIFIED keeps
+// the neutral initials fallback; MALE/FEMALE map to /images/gender/*.avif.
+enum Gender {
+  MALE
+  FEMALE
+  UNSPECIFIED
 }
 
 // Auth.js (NextAuth v5) Prisma adapter models — wired up in Session 3.

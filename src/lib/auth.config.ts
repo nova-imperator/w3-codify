@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import type { Role } from "@prisma/client";
+import type { Gender, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 /**
@@ -12,17 +12,34 @@ export const authConfig = {
   pages: { signIn: "/auth/signin" },
   providers: [], // real providers are added in auth.ts (Node runtime)
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
+        const u = user as { role?: Role; gender?: Gender; avatarUrl?: string | null };
         token.id = user.id;
-        token.role = (user as { role?: Role }).role;
+        token.role = u.role;
+        token.gender = u.gender ?? "UNSPECIFIED";
+        token.avatarUrl = u.avatarUrl ?? null;
+      }
+      // Optimistic client patches (profile/onboarding) call `update({ gender, avatarUrl })`
+      // so the navbar avatar refreshes without a re-login or extra query.
+      if (trigger === "update" && session && typeof session === "object") {
+        const s = session as { gender?: Gender; avatarUrl?: string | null };
+        if (s.gender !== undefined) token.gender = s.gender;
+        if (s.avatarUrl !== undefined) token.avatarUrl = s.avatarUrl;
       }
       return token;
     },
     session({ session, token }) {
-      const su = session.user as { id?: string; role?: Role };
+      const su = session.user as {
+        id?: string;
+        role?: Role;
+        gender?: Gender;
+        avatarUrl?: string | null;
+      };
       su.id = token.id as string | undefined;
       su.role = token.role as Role | undefined;
+      su.gender = (token.gender as Gender | undefined) ?? "UNSPECIFIED";
+      su.avatarUrl = (token.avatarUrl as string | null | undefined) ?? null;
       return session;
     },
     authorized({ auth, request }) {

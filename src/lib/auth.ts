@@ -44,6 +44,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: [user.firstName, user.lastName].filter(Boolean).join(" ") || null,
           email: user.email,
           role: user.role,
+          gender: user.gender,
+          avatarUrl: user.avatarUrl,
         };
       },
     }),

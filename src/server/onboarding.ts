@@ -1,8 +1,11 @@
 "use server";
 
+import type { Gender } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
 import { normalizePhone, isValidPhone } from "@/lib/otp";
+
+const GENDERS: readonly Gender[] = ["MALE", "FEMALE", "UNSPECIFIED"];
 
 /** Whether to show the first-login welcome step (Name + Contact). */
 export async function getOnboardingStatus(): Promise<{ needsOnboarding: boolean }> {
@@ -25,15 +28,23 @@ export async function completeOnboarding(input: {
   skip?: boolean;
   name?: string;
   phone?: string;
+  gender?: Gender;
 }): Promise<OnboardingResult> {
   const sessionUser = await getCurrentUser();
   if (!sessionUser?.id) return { ok: false, error: "Please sign in." };
 
-  const data: { onboardedAt: Date; firstName?: string; lastName?: string; phone?: string } = {
+  const data: {
+    onboardedAt: Date;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    gender?: Gender;
+  } = {
     onboardedAt: new Date(),
   };
 
   if (!input.skip) {
+    if (input.gender && GENDERS.includes(input.gender)) data.gender = input.gender;
     const name = (input.name ?? "").trim();
     if (name) {
       const [first, ...rest] = name.split(/\s+/);

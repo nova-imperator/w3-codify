@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import {
   User,
@@ -22,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge, LiveBadge } from "@/components/ui/badge";
 import { Markdown } from "@/components/shared/markdown";
+import { GenderSelect } from "@/components/shared/gender-select";
+import type { Gender } from "@/lib/avatar";
 import { AvatarUploader } from "./avatar-uploader";
 import {
   updateBasicInfo,
@@ -42,6 +45,7 @@ export type ProfileData = {
   pincode: string;
   country: string;
   avatarUrl: string | null;
+  gender: Gender;
   jobTitle: string;
   company: string;
   experienceYears: string;
@@ -86,6 +90,8 @@ export function ProfileClient({
   s3Configured: boolean;
 }) {
   const [section, setSection] = React.useState<Section>("basic");
+  // Lifted so the sidebar avatar reflects gender changes from Basic Info instantly.
+  const [gender, setGender] = React.useState<Gender>(data.gender);
   const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ") || "Learner";
   const purchased = data.enrollments.filter((e) => e.type === "PAID").length;
 
@@ -94,7 +100,7 @@ export function ProfileClient({
       {/* Sidebar */}
       <aside className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 rounded-[20px] border border-border bg-bg-elevated p-6 text-center">
-          <AvatarUploader name={fullName} avatarUrl={data.avatarUrl} s3Configured={s3Configured} />
+          <AvatarUploader name={fullName} avatarUrl={data.avatarUrl} gender={gender} s3Configured={s3Configured} />
           <div>
             <p className="font-display text-lg font-semibold">{fullName}</p>
             <Badge variant="brand" className="mt-1">STUDENT</Badge>
@@ -123,7 +129,7 @@ export function ProfileClient({
 
       {/* Main */}
       <div className="min-w-0">
-        {section === "basic" && <BasicInfo data={data} />}
+        {section === "basic" && <BasicInfo data={data} gender={gender} onGenderChange={setGender} />}
         {section === "professional" && <Professional data={data} />}
         {section === "batches" && <Batches enrollments={data.enrollments} />}
         {section === "projects" && <Projects projects={data.projects} />}
@@ -159,8 +165,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function BasicInfo({ data }: { data: ProfileData }) {
+function BasicInfo({
+  data,
+  gender,
+  onGenderChange,
+}: {
+  data: ProfileData;
+  gender: Gender;
+  onGenderChange: (g: Gender) => void;
+}) {
   const router = useRouter();
+  const { update } = useSession();
   const [busy, setBusy] = React.useState(false);
   const [f, setF] = React.useState(data);
   const set = (k: keyof ProfileData, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -178,9 +193,12 @@ function BasicInfo({ data }: { data: ProfileData }) {
       state: f.state,
       pincode: f.pincode,
       country: f.country,
+      gender,
     });
     setBusy(false);
     if (res.ok) {
+      // Keep the navbar avatar in sync without a re-login.
+      await update({ gender });
       toast.success("Profile saved");
       router.refresh();
     } else toast.error(res.error);
@@ -197,6 +215,11 @@ function BasicInfo({ data }: { data: ProfileData }) {
             <Input value={`+91 ${f.phone}`} disabled className="opacity-70" />
           </Field>
           <Field label="Date of Birth"><Input type="date" value={f.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} /></Field>
+        </div>
+        <div className="mt-4">
+          <Field label="Gender">
+            <GenderSelect value={gender} onChange={onGenderChange} disabled={busy} />
+          </Field>
         </div>
         <div className="mt-4">
           <Field label="Bio">

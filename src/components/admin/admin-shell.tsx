@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfileAvatar } from "@/components/shared/profile-avatar";
 
 const NAV = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -44,7 +44,12 @@ export function AdminShell({
   user,
   children,
 }: {
-  user: { name?: string | null; email?: string | null };
+  user: {
+    name?: string | null;
+    email?: string | null;
+    gender?: "MALE" | "FEMALE" | "UNSPECIFIED" | null;
+    avatarUrl?: string | null;
+  };
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -63,9 +68,6 @@ export function AdminShell({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  const initials =
-    (user.name ?? "A").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div className="min-h-dvh bg-bg lg:grid lg:grid-cols-[260px_1fr]">
@@ -147,9 +149,12 @@ export function AdminShell({
                 <CommandIcon className="size-2.5" />K
               </kbd>
             </button>
-            <Avatar className="size-9 border-brand/30">
-              <AvatarFallback className="bg-brand/15 text-brand">{initials}</AvatarFallback>
-            </Avatar>
+            <ProfileAvatar
+              user={user}
+              size={36}
+              className="size-9 border-brand/30"
+              fallbackClassName="bg-brand/15 text-brand"
+            />
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>

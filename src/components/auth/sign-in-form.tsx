@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { ArrowRight, Loader2, ArrowLeft, ShieldCheck, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GenderSelect } from "@/components/shared/gender-select";
+import type { Gender } from "@/lib/avatar";
 import { OtpInput } from "./otp-input";
 import { OrDivider } from "./auth-shell";
 import { GoogleButton } from "./google-button";
@@ -26,6 +28,7 @@ export function SignInForm({
   callbackUrl: string;
 }) {
   const router = useRouter();
+  const { update } = useSession();
   const [step, setStep] = React.useState<"email" | "otp" | "onboarding">("email");
   const [email, setEmail] = React.useState("");
   const [code, setCode] = React.useState("");
@@ -37,6 +40,7 @@ export function SignInForm({
   // onboarding fields
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [gender, setGender] = React.useState<Gender>("UNSPECIFIED");
 
   React.useEffect(() => {
     if (cooldown <= 0) return;
@@ -111,11 +115,13 @@ export function SignInForm({
     setLoading(true);
     setError(null);
     try {
-      const res = await completeOnboarding(skip ? { skip: true } : { name, phone });
+      const res = await completeOnboarding(skip ? { skip: true } : { name, phone, gender });
       if (!res.ok) {
         setError(res.error);
         return;
       }
+      // Reflect the chosen gender in the session so the navbar avatar updates now.
+      if (!skip && gender !== "UNSPECIFIED") await update({ gender });
       toast.success("You're all set! 🎉");
       finish();
     } catch {
@@ -154,6 +160,10 @@ export function SignInForm({
               <span className="inline-flex h-11 select-none items-center rounded-[12px] border border-border bg-bg-subtle px-3 text-sm text-fg-muted">🇮🇳 +91</span>
               <Input id="contact" inputMode="numeric" autoComplete="tel" placeholder="98765 43210" value={fmtPhone(phone)} onChange={(e) => setPhone(e.target.value)} />
             </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-fg-muted">Gender</label>
+            <GenderSelect value={gender} onChange={setGender} disabled={loading} />
           </div>
           {error && <p className="text-sm text-[#fb7185]" role="alert">{error}</p>}
           <Button type="submit" size="lg" disabled={loading}>

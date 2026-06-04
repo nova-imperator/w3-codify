@@ -23,6 +23,7 @@ export default async function ProfilePage() {
     pincode: user.pincode ?? "",
     country: user.country ?? "",
     avatarUrl: user.avatarUrl,
+    gender: user.gender,
     jobTitle: user.jobTitle ?? "",
     company: user.company ?? "",
     experienceYears: user.experienceYears != null ? String(user.experienceYears) : "",
