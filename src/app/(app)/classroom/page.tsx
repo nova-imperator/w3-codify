@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { GraduationCap, PlayCircle, CalendarClock, ArrowRight, Sparkles } from "lucide-react";
+import { GraduationCap, PlayCircle, CalendarClock, ArrowRight, Sparkles, Flame, CheckCircle2 } from "lucide-react";
 import { getMyClassroom } from "@/server/classroom";
+import { getStreak } from "@/server/learning";
+import { getCurrentUser } from "@/server/session";
 import { ProgressRing } from "@/components/classroom/progress-ring";
 import { Button } from "@/components/ui/button";
 import { Badge, LiveBadge } from "@/components/ui/badge";
@@ -17,14 +19,29 @@ export default async function ClassroomPage() {
   const courses = await getMyClassroom();
   if (courses === null) redirect("/auth/signin?callbackUrl=/classroom");
 
+  const user = await getCurrentUser();
+  const streak = user?.id ? await getStreak(user.id) : 0;
+
   const inProgress = courses.filter((c) => c.percent > 0 && c.percent < 100);
   const continueCard = inProgress[0] ?? courses[0];
+  const resumeHref = (c: { courseId: string; resumeLessonId: string | null }) =>
+    `/classroom/${c.courseId}${c.resumeLessonId ? `?lesson=${c.resumeLessonId}` : ""}`;
 
   return (
     <div className="container-page pb-16 pt-28 md:pt-32">
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-bold md:text-4xl">Your Classroom</h1>
-        <p className="mt-2 text-fg-muted">Pick up where you left off and keep building.</p>
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold md:text-4xl">Your Classroom</h1>
+          <p className="mt-2 text-fg-muted">Pick up where you left off and keep building.</p>
+        </div>
+        {streak > 0 && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#f5a623]/30 bg-[#f5a623]/10 px-3.5 py-2 text-sm font-semibold text-[#f5a623]"
+            title="Consecutive days with lesson activity"
+          >
+            <Flame className="size-4" /> {streak}-day streak
+          </span>
+        )}
       </header>
 
       {courses.length === 0 ? (
@@ -46,7 +63,7 @@ export default async function ClassroomPage() {
               <section>
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-fg-faint">Continue learning</h2>
                 <Link
-                  href={`/classroom/${continueCard.courseId}`}
+                  href={resumeHref(continueCard)}
                   className="group flex flex-col gap-4 overflow-hidden rounded-[20px] border border-border bg-bg-elevated p-5 transition-colors hover:border-border-strong sm:flex-row sm:items-center"
                 >
                   <div className="relative aspect-video w-full overflow-hidden rounded-[14px] sm:w-56">
@@ -80,13 +97,19 @@ export default async function ClassroomPage() {
                 {courses.map((c) => (
                   <Link
                     key={c.courseId}
-                    href={`/classroom/${c.courseId}`}
+                    href={resumeHref(c)}
                     className="group flex items-center gap-4 rounded-[18px] border border-border bg-bg-elevated p-4 transition-colors hover:border-border-strong"
                   >
                     <ProgressRing percent={c.percent} />
                     <div className="min-w-0 flex-1">
                       <h3 className="truncate font-medium text-fg group-hover:text-brand-glow">{c.title}</h3>
-                      <p className="text-xs text-fg-muted">{c.completedLessons}/{c.totalLessons} lessons</p>
+                      {c.completedCourse ? (
+                        <p className="inline-flex items-center gap-1 text-xs font-medium text-success">
+                          <CheckCircle2 className="size-3.5" /> Completed
+                        </p>
+                      ) : (
+                        <p className="text-xs text-fg-muted">{c.completedLessons}/{c.totalLessons} lessons</p>
+                      )}
                     </div>
                     <ArrowRight className="size-4 shrink-0 text-fg-faint transition-transform group-hover:translate-x-0.5" />
                   </Link>

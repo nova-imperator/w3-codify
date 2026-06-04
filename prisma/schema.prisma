@@ -26,6 +26,8 @@ model User {
   avatarUrl     String?
   gender        Gender    @default(UNSPECIFIED)
   role          Role      @default(STUDENT)
+  streak          Int       @default(0) // consecutive days with lesson activity
+  lastActiveDate  DateTime? // date (midnight) of last lesson activity, for the streak
   bio           String?
   dateOfBirth   DateTime?
   city          String?
@@ -280,6 +282,8 @@ model Enrollment {
   type      EnrollType   @default(FREE)
   status    EnrollStatus @default(ACTIVE)
   progress  Json? // lessonId -> completed
+  lastLessonId String? // last-viewed lesson (for Resume)
+  lastActiveAt DateTime? // last activity in this course (recency for the continue banner)
   paymentId String?
   createdAt DateTime     @default(now())
 

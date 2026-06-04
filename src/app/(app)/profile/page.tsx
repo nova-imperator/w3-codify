@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getMyProfile } from "@/server/profile";
+import { getMyClassroom } from "@/server/classroom";
 import { isS3Configured } from "@/lib/s3";
 import { ProfileClient, type ProfileData } from "@/components/profile/profile-client";
 
@@ -10,6 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function ProfilePage() {
   const user = await getMyProfile();
   if (!user) redirect("/auth/signin?callbackUrl=/profile");
+
+  // Per-course progress for the "Your Batches" list (keyed by slug).
+  const classroom = (await getMyClassroom()) ?? [];
+  const progressBySlug = new Map(classroom.map((c) => [c.slug, c]));
 
   const data: ProfileData = {
     firstName: user.firstName ?? "",
@@ -34,13 +39,21 @@ export default async function ProfilePage() {
     githubUrl: user.githubUrl ?? "",
     linkedinUrl: user.linkedinUrl ?? "",
     websiteUrl: user.websiteUrl ?? "",
-    enrollments: user.enrollments.map((e) => ({
-      slug: e.course.slug,
-      title: e.course.title,
-      type: e.type,
-      status: e.status,
-      isLive: e.course.isLive,
-    })),
+    enrollments: user.enrollments.map((e) => {
+      const p = progressBySlug.get(e.course.slug);
+      return {
+        slug: e.course.slug,
+        title: e.course.title,
+        type: e.type,
+        status: e.status,
+        isLive: e.course.isLive,
+        courseId: p?.courseId ?? null,
+        percent: p?.percent ?? 0,
+        completed: p?.completedLessons ?? 0,
+        total: p?.totalLessons ?? 0,
+        resumeLessonId: p?.resumeLessonId ?? null,
+      };
+    }),
     projects: user.projects.map((p) => ({
       id: p.id,
       title: p.title,

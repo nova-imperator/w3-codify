@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/session";
-import { readProgress, completedLessonIds } from "@/server/progress";
+import { readProgress } from "@/server/progress";
+import { computeProgress } from "@/server/learning";
 
 /** Enrolled courses + progress for the classroom dashboard (§6.8). */
 export async function getMyClassroom() {
@@ -9,34 +10,39 @@ export async function getMyClassroom() {
 
   const enrollments = await prisma.enrollment.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
     include: {
       course: {
         include: {
           instructors: { select: { name: true } },
-          sections: { include: { lessons: { select: { id: true } } } },
+          sections: { select: { order: true, lessons: { select: { id: true, order: true } } } },
         },
       },
     },
   });
 
-  return enrollments.map((e) => {
-    const lessonIds = e.course.sections.flatMap((s) => s.lessons.map((l) => l.id));
-    const done = completedLessonIds(e.progress);
-    const completed = lessonIds.filter((id) => done.has(id)).length;
-    return {
-      courseId: e.course.id,
-      slug: e.course.slug,
-      title: e.course.title,
-      thumbnail: e.course.thumbnail,
-      isLive: e.course.isLive,
-      instructor: e.course.instructors[0]?.name ?? "W3Codify",
-      type: e.type,
-      totalLessons: lessonIds.length,
-      completedLessons: completed,
-      percent: lessonIds.length ? Math.round((completed / lessonIds.length) * 100) : 0,
-    };
-  });
+  return enrollments
+    .map((e) => {
+      const lessonIds = [...e.course.sections]
+        .sort((a, b) => a.order - b.order)
+        .flatMap((s) => [...s.lessons].sort((a, b) => a.order - b.order).map((l) => l.id));
+      const p = computeProgress(e.progress, lessonIds, e.lastLessonId);
+      return {
+        courseId: e.course.id,
+        slug: e.course.slug,
+        title: e.course.title,
+        thumbnail: e.course.thumbnail,
+        isLive: e.course.isLive,
+        instructor: e.course.instructors[0]?.name ?? "W3Codify",
+        type: e.type,
+        totalLessons: p.total,
+        completedLessons: p.completed,
+        percent: p.percent,
+        completedCourse: p.completedCourse,
+        resumeLessonId: p.lastLessonId,
+        recency: e.lastActiveAt?.getTime() ?? e.createdAt.getTime(),
+      };
+    })
+    .sort((a, b) => b.recency - a.recency);
 }
 
 /** Full course player payload — only for enrolled users (or admins). */

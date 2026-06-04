@@ -11,6 +11,7 @@ import { Testimonials } from "@/components/marketing/testimonials";
 import { Faq } from "@/components/marketing/faq";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { OrganizationJsonLd } from "@/components/shared/json-ld";
+import { ContinueBanner } from "@/components/learning/continue-banner";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -21,6 +22,8 @@ export default function HomePage() {
     <>
       <OrganizationJsonLd />
       <Hero />
+      {/* Come-back nudge for logged-in students mid-course (self-hides otherwise). */}
+      <ContinueBanner className="pt-2" />
       <TechMarquee />
       <StatsBand />
       <AiTutorTeaser />

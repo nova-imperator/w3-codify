@@ -33,6 +33,7 @@ import {
   markVideoWatched,
   markLessonDone,
 } from "@/server/classroom-actions";
+import { pingLesson } from "@/server/learning-actions";
 
 type Lesson = {
   id: string;
@@ -142,13 +143,25 @@ export function CoursePlayer({
     } catch {
       /* ignore corrupt storage */
     }
-    if (saved?.v && validView(saved.v)) setView(saved.v);
+    // A ?lesson= deep-link (from a "Resume" button) wins over persisted state.
+    const wantLesson = new URLSearchParams(window.location.search).get("lesson");
+    if (wantLesson && flat.some((l) => l.id === wantLesson)) {
+      setView({ kind: "lesson", id: wantLesson });
+    } else if (saved?.v && validView(saved.v)) {
+      setView(saved.v);
+    }
     if (typeof saved?.tu === "boolean") setTutorOpen(saved.tu);
     if (typeof saved?.fo === "boolean") setFocusMode(saved.fo);
     if (typeof saved?.sb === "boolean") setSidebarOpen(saved.sb);
     else if (!window.matchMedia("(min-width: 1024px)").matches) setSidebarOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
+
+  // Record activity (resume target + daily streak) when the viewed lesson changes.
+  React.useEffect(() => {
+    if (!mounted || view.kind !== "lesson" || !view.id) return;
+    void pingLesson(courseId, view.id);
+  }, [mounted, courseId, view]);
 
   // Persist on change.
   React.useEffect(() => {

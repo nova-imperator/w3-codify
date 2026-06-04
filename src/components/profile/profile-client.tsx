@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Github,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,11 @@ export type ProfileData = {
     type: string;
     status: string;
     isLive: boolean;
+    courseId: string | null;
+    percent: number;
+    completed: number;
+    total: number;
+    resumeLessonId: string | null;
   }[];
   projects: {
     id: string;
@@ -337,18 +343,34 @@ function Batches({ enrollments }: { enrollments: ProfileData["enrollments"] }) {
         </div>
       ) : (
         <ul className="flex flex-col divide-y divide-border">
-          {enrollments.map((e) => (
-            <li key={e.slug} className="flex items-center justify-between gap-4 py-3.5">
-              <div className="min-w-0">
-                <Link href={`/courses/${e.slug}`} className="font-medium text-fg hover:text-brand-glow">{e.title}</Link>
-                <div className="mt-1 flex items-center gap-2">
-                  <Badge variant={e.type === "PAID" ? "brand" : "default"}>{e.type === "PAID" ? "Purchased" : "Free"}</Badge>
-                  {e.isLive && <LiveBadge />}
+          {enrollments.map((e) => {
+            const done = e.total > 0 && e.completed === e.total;
+            const href = e.courseId
+              ? `/classroom/${e.courseId}${e.resumeLessonId ? `?lesson=${e.resumeLessonId}` : ""}`
+              : "/classroom";
+            return (
+              <li key={e.slug} className="flex items-center justify-between gap-4 py-3.5">
+                <div className="min-w-0 flex-1">
+                  <Link href={`/courses/${e.slug}`} className="font-medium text-fg hover:text-brand-glow">{e.title}</Link>
+                  <div className="mt-1 flex items-center gap-2">
+                    <Badge variant={e.type === "PAID" ? "brand" : "default"}>{e.type === "PAID" ? "Purchased" : "Free"}</Badge>
+                    {e.isLive && <LiveBadge />}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2.5">
+                    <div className="h-1.5 w-full max-w-[180px] overflow-hidden rounded-full bg-bg-subtle">
+                      <div className="bg-accent-grad h-full rounded-full" style={{ width: `${e.percent}%` }} />
+                    </div>
+                    {done ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-success"><CheckCircle2 className="size-3.5" /> Completed</span>
+                    ) : (
+                      <span className="shrink-0 text-xs text-fg-muted">{e.percent}% · {e.completed}/{e.total}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <Button asChild size="sm" variant="secondary"><Link href="/classroom">Continue</Link></Button>
-            </li>
-          ))}
+                <Button asChild size="sm" variant="secondary"><Link href={href}>{done ? "Review" : "Continue"}</Link></Button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </Card>
