@@ -1,0 +1,20 @@
+Auth: passwordless email-OTP via SMTP, no signup, skippable first-login onboarding
+
+- /auth/signin is now one email field -> Continue -> 6-digit OTP emailed via SMTP
+  (nodemailer, SMTP_* env) -> verify. Same screen for new + returning users; if the
+  email has no account one is created automatically (emailVerified=now), else sign in.
+- First login ONLY: a skippable welcome step (Name + Contact, prominent "Skip for now")
+  saved to profile via completeOnboarding; never blocks entry; editable later in /profile.
+  Tracked by User.onboardedAt (set on complete OR skip); existing users backfilled.
+- /auth/signup 301-redirects to /auth/signin; removed the signup page/form + register route.
+- OTP: 6-digit, 10-min TTL, 5 attempts, 30s resend cooldown, HMAC-hashed at rest,
+  per-IP + per-email rate limit, generic responses. Branded HTML OTP email; dev-code
+  fallback only when SMTP is unset. "Continue with Google" only if configured.
+- Schema migration (backfill-safe): User.email unique+required, phone+firstName optional,
+  onboardedAt added; OtpRequest keyed by email. JWT sessions unaffected.
+- Removed unused MSG91 SMS path; admin settings shows SMTP status.
+
+Verified end-to-end (scripts/demo-auth.mts): verify -> auto-create -> needs-onboarding ->
+skip -> returning login skips onboarding, all pass.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

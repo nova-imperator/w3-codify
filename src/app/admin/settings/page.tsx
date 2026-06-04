@@ -14,7 +14,7 @@ export default async function AdminSettingsPage() {
   const integrations = [
     { name: "Database (PostgreSQL/RDS)", ok: configured(process.env.DATABASE_URL), note: "Catalog, users, enrollments" },
     { name: "Auth.js secret", ok: configured(process.env.AUTH_SECRET), note: "Session signing" },
-    { name: "MSG91 (SMS/OTP)", ok: configured(process.env.MSG91_AUTH_KEY), note: "Real OTP delivery (dev-code fallback when off)" },
+    { name: "SMTP (Email-OTP)", ok: configured(process.env.SMTP_HOST, process.env.SMTP_USER, process.env.SMTP_PASS), note: "Passwordless email sign-in delivery (dev-code fallback when off)" },
     { name: "Google OAuth", ok: configured(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET), note: "Continue with Google" },
     { name: "reCAPTCHA v3", ok: configured(process.env.RECAPTCHA_SECRET_KEY, process.env.RECAPTCHA_SITE_KEY), note: "Bot protection on register/callback" },
     { name: "AWS S3 / CloudFront", ok: configured(process.env.AWS_ACCESS_KEY_ID, process.env.S3_BUCKET_NAME), note: "Media uploads (add-by-URL when off)" },

@@ -40,7 +40,9 @@ export async function updateBasicInfo(input: z.infer<typeof basicSchema>): Promi
       data: {
         firstName: d.firstName,
         lastName: d.lastName || null,
-        email: d.email || null,
+        // Email is the account identity — update only when a new one is given,
+        // never clear it to null.
+        email: d.email || undefined,
         bio: d.bio || null,
         dateOfBirth: d.dateOfBirth ? new Date(d.dateOfBirth) : null,
         city: d.city || null,

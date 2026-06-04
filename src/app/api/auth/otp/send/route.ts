@@ -1,34 +1,45 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { sendOtp } from "@/server/otp";
-import { normalizePhone, isValidPhone } from "@/lib/otp";
+import { sendEmailOtp } from "@/server/otp";
+import { normalizeEmail, isValidEmail } from "@/lib/otp";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
-const schema = z.object({ phone: z.string().min(8).max(20) });
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// POST /api/auth/otp/send { phone } -> sends OTP (rate-limited) (§9).
+const schema = z.object({ email: z.string().min(3).max(254) });
+
+// POST /api/auth/otp/send { email } -> emails a 6-digit OTP (§6.4, §11).
+// Rate-limited per IP and per email; responses are generic (never reveal whether
+// an account exists).
 export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-  }
+  const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Enter a valid phone number." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
   }
-  const phone = normalizePhone(parsed.data.phone);
-  if (!isValidPhone(phone)) {
-    return NextResponse.json({ error: "Enter a valid 10-digit number." }, { status: 400 });
+  const email = normalizeEmail(parsed.data.email);
+  if (!isValidEmail(email)) {
+    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
   }
 
-  const result = await sendOtp(phone);
-  if (!result.ok) {
+  // Abuse guards: per-IP (broad) + per-email (narrow).
+  const ipRl = rateLimit(`otp:ip:${clientIp(req)}`, 12, 60 * 60_000);
+  const emailRl = rateLimit(`otp:email:${email}`, 5, 60 * 60_000);
+  if (!ipRl.ok || !emailRl.ok) {
     return NextResponse.json(
-      { error: result.error, retryAfterMs: result.retryAfterMs },
+      { error: "Too many requests. Please try again later." },
       { status: 429 },
     );
   }
-  // devCode is only present when SMS isn't configured (dev/staging).
+
+  const result = await sendEmailOtp(email);
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.error, retryAfterMs: result.retryAfterMs },
+      { status: result.retryAfterMs ? 429 : 500 },
+    );
+  }
+  // devCode is only present when SMTP isn't configured (dev/staging only).
   return NextResponse.json({ ok: true, delivered: result.delivered, devCode: result.devCode });
 }

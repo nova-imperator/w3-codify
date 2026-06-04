@@ -3,8 +3,8 @@
 import { KeyRound } from "lucide-react";
 
 /**
- * Shown only when SMS isn't configured: surfaces the generated OTP so the
- * flow is testable on dev/staging. Disappears automatically once MSG91 is set.
+ * Shown only when SMTP isn't configured: surfaces the generated OTP so the
+ * flow is testable on dev/staging. Disappears automatically once SMTP is set.
  */
 export function DevCodeNotice({
   code,
@@ -18,7 +18,7 @@ export function DevCodeNotice({
       <div className="flex items-center gap-2 text-sm">
         <KeyRound className="size-4 shrink-0 text-brand" />
         <span className="text-fg-muted">
-          SMS not configured — your code is{" "}
+          Email not configured — your code is{" "}
           <span className="font-mono font-semibold text-fg">{code}</span>
         </span>
       </div>

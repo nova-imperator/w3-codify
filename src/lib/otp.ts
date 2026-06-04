@@ -13,9 +13,9 @@ export function generateOtp(): string {
 }
 
 /** HMAC the code with the app secret (codes are never stored in plaintext). */
-export function hashOtp(phone: string, code: string): string {
+export function hashOtp(identifier: string, code: string): string {
   const secret = process.env.AUTH_SECRET ?? "dev-secret";
-  return createHmac("sha256", secret).update(`${phone}:${code}`).digest("hex");
+  return createHmac("sha256", secret).update(`${identifier}:${code}`).digest("hex");
 }
 
 export function safeEqualHex(a: string, b: string): boolean {
@@ -23,6 +23,16 @@ export function safeEqualHex(a: string, b: string): boolean {
   const bb = Buffer.from(b, "hex");
   if (ba.length !== bb.length) return false;
   return timingSafeEqual(ba, bb);
+}
+
+/** Lowercase + trim for a stable email identity key. */
+export function normalizeEmail(input: string): string {
+  return input.trim().toLowerCase();
+}
+
+export function isValidEmail(email: string): boolean {
+  // Pragmatic, dependency-free check (full validation happens at delivery).
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
 }
 
 /** Normalize to 10-digit Indian number (strip +91 / spaces). */

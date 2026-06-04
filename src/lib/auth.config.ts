@@ -35,6 +35,14 @@ export const authConfig = {
         return NextResponse.redirect(new URL("/courses", request.nextUrl), 301);
       }
 
+      // Signup merged into Sign In (§6.5) — 301 → /auth/signin (keep callbackUrl).
+      if (pathname === "/auth/signup" || pathname.startsWith("/auth/signup/")) {
+        const url = new URL("/auth/signin", request.nextUrl);
+        const cb = request.nextUrl.searchParams.get("callbackUrl");
+        if (cb) url.searchParams.set("callbackUrl", cb);
+        return NextResponse.redirect(url, 301);
+      }
+
       if (pathname.startsWith("/admin")) {
         if (role === "ADMIN") return true;
         // Logged-in non-admin -> home; anonymous -> sign in (with callback).

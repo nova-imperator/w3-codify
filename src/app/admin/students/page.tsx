@@ -7,9 +7,9 @@ export default async function AdminStudentsPage() {
   const rows = await getAdminStudents();
   const students = rows.map((u) => ({
     id: u.id,
-    name: [u.firstName, u.lastName].filter(Boolean).join(" "),
+    name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "—",
     email: u.email,
-    phone: u.phone,
+    phone: u.phone ?? "",
     enrollments: u._count.enrollments,
     courses: u.enrollments.map((e) => e.course.title),
     joined: u.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),

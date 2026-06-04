@@ -16,12 +16,13 @@ datasource db {
 // ----------------------------------------------------------------------------
 model User {
   id            String    @id @default(cuid())
-  firstName     String
+  firstName     String?
   lastName      String?
-  email         String?   @unique
-  phone         String    @unique
+  email         String    @unique
+  phone         String?   @unique
   phoneVerified Boolean   @default(false)
   emailVerified DateTime?
+  onboardedAt   DateTime? // set on first-login onboarding (completed OR skipped)
   avatarUrl     String?
   role          Role      @default(STUDENT)
   bio           String?
@@ -96,13 +97,13 @@ model VerificationToken {
 
 model OtpRequest {
   id        String   @id @default(cuid())
-  phone     String
+  email     String
   codeHash  String
   expiresAt DateTime
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
 
-  @@index([phone])
+  @@index([email])
 }
 
 // ----------------------------------------------------------------------------

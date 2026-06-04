@@ -21,14 +21,13 @@ export default async function SignInPage({
 
   return (
     <AuthShell
-      title="Sign In"
-      subtitle="Welcome back. Sign in with your phone number."
+      title="Sign in or sign up"
+      subtitle="Enter your email and we'll send you a one-time code. No password."
       footer={
         <>
-          New user?{" "}
-          <Link href="/auth/signup" className="font-medium text-brand hover:underline">
-            Create an account
-          </Link>
+          By continuing you agree to our{" "}
+          <Link href="/legal/terms" className="font-medium text-brand hover:underline">Terms</Link> and{" "}
+          <Link href="/legal/privacy" className="font-medium text-brand hover:underline">Privacy Policy</Link>.
         </>
       }
     >

@@ -12,10 +12,10 @@ export default async function ProfilePage() {
   if (!user) redirect("/auth/signin?callbackUrl=/profile");
 
   const data: ProfileData = {
-    firstName: user.firstName,
+    firstName: user.firstName ?? "",
     lastName: user.lastName ?? "",
     email: user.email ?? "",
-    phone: user.phone,
+    phone: user.phone ?? "",
     bio: user.bio ?? "",
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : "",
     city: user.city ?? "",
