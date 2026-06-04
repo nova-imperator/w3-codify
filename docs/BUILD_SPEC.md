@@ -289,20 +289,27 @@ Udemy‑class layout:
   share, wishlist.
 - JSON‑LD `Course`. OG image per course.
 
-### 6.4 SIGN IN `/auth/signin`
-- Centered card. Title **"Sign In"**, link *New user? Create an account*.
-- **Phone Number** field → **Send OTP** → 6‑digit OTP input → verify.
-- Divider **"Or"** → **Continue with Google**.
-- On success: redirect to `/classroom` (or intended route).
+### 6.4 SIGN IN — passwordless EMAIL-OTP, no signup (the ONLY auth flow) ⭐
+**Goal: the lowest-friction join possible.** No password, no signup step. One screen.
+- Single centered card, **just one field: Email.** CTA **"Continue"** (the bold gradient button).
+- On submit → generate a 6-digit OTP, **email it via SMTP** (§11), show the **OTP input**
+  ("Enter the 6-digit code sent to your email" + change-email + resend-with-cooldown).
+- On verify:
+  - If the email has **no account → silently create one** (passwordless, `emailVerified=now`).
+  - If it exists → sign them in. **Same screen for new and returning users** — they never
+    "sign up". Session-based (Auth.js).
+- **First-login onboarding (only the very first time):** after the OTP succeeds and the user
+  was just created, show a small **welcome step** asking **Name** and **Contact (phone)** —
+  with a prominent **"Skip for now"** button. Saved to their profile; they can fill it later
+  in `/profile`. Never block entry on it.
+- Optional: keep **"Continue with Google"** below a divider **only if** Google is configured;
+  otherwise hide it. No reCAPTCHA required for the email step (rate-limit instead).
+- On success → redirect to `/classroom` (or the intended route).
 
-### 6.5 SIGN UP `/auth/signup`
-- Title **"Sign Up"**, link *Already have an account? Sign In*.
-- Fields: **First Name, Last Name** (row), **Phone Number**, **Email**.
-- Consent checkbox (pre‑checked, editable): *"I agree to receive communications from
-  W3Codify via WhatsApp, SMS, email, and phone calls, even if registered under DND/NDNC."*
-- **reCAPTCHA v3** before submit.
-- **Register Now** (primary) → creates user → OTP verify → signed in.
-- Divider **"Or"** → **Continue with Google**.
+### 6.5 SIGN UP — REMOVED (merged into Sign In)
+There is **no separate signup**. `/auth/signup` 301-redirects to `/auth/signin`. Accounts are
+created automatically on first successful email-OTP. The name/contact that used to be a signup
+form is now the optional, skippable **first-login onboarding** above.
 
 ### 6.6 REQUEST CALLBACK (global modal)
 Openable from nav on any page. Dialog **"Request a Callback"**, subcopy.
@@ -547,7 +554,9 @@ model CallbackLead {
   createdAt DateTime @default(now())
 }
 
-model OtpRequest { id String @id @default(cuid()) phone String codeHash String expiresAt DateTime attempts Int @default(0) createdAt DateTime @default(now()) }
+model OtpRequest { id String @id @default(cuid()) email String codeHash String expiresAt DateTime attempts Int @default(0) createdAt DateTime @default(now()) }
+// NOTE: email-OTP is now the auth flow. User.email is unique + required (primary identifier);
+// firstName/phone are optional (captured later via skippable onboarding / profile).
 
 model AiThread { id String @id @default(cuid()) userId String user User @relation(fields:[userId],references:[id]) courseId String? title String? messages AiMessage[] createdAt DateTime @default(now()) }
 model AiMessage { id String @id @default(cuid()) threadId String thread AiThread @relation(fields:[threadId],references:[id]) role String content String createdAt DateTime @default(now()) }
@@ -682,10 +691,17 @@ public/  fonts/  og/
 
 ## 11. Auth & Security
 
-- **Auth.js v5** with: Google provider; **Credentials provider for Phone‑OTP**
-  (verify against hashed `OtpRequest`, mark `phoneVerified`).
-- OTP: 6‑digit, 5‑min TTL, max 5 attempts, resend cooldown 30s, hashed at rest, per‑IP+phone rate limit.
-- **reCAPTCHA v3** server‑verified on `/auth/register` and `/api/callback` (score threshold 0.5).
+- **Auth.js v5** with a **Credentials provider for EMAIL-OTP** (passwordless): verify the code
+  against a hashed `OtpRequest` keyed by **email**, then upsert the `User` (create if new,
+  `emailVerified=now`). Google provider optional (only if configured).
+- **Email delivery via SMTP** (nodemailer): send the OTP as a clean branded email. Config from
+  `SMTP_*` env (Gmail App Password to start — see §12). On a dev box with no SMTP set, fall
+  back to logging the code (never in production).
+- OTP: 6‑digit, **10‑min TTL**, max 5 attempts, resend cooldown 30s, **hashed at rest**,
+  per‑IP + per‑email rate limit. Generic responses (don't reveal whether an email exists).
+- Email is the primary identifier: `User.email` **unique + required**, `emailVerified` set on
+  first OTP success; `firstName`/`phone` become optional (filled later via onboarding/profile).
+- No reCAPTCHA on the email step (rate-limit + cooldown instead); keep it on the public callback form.
 - Sessions: JWT or DB sessions (Prisma adapter). Protect `(app)` group via middleware.
 - Security headers (CSP, HSTS, X‑Frame‑Options), CSRF on mutations, input sanitization,
   rate limiting (Upstash/Redis or in‑proc), secrets only in env (never client).
@@ -700,9 +716,12 @@ Create `.env.example` (committed, no secrets). Real `.env` is **gitignored**.
 ```
 DATABASE_URL=postgresql://...@<rds-endpoint>:5432/w3codify?sslmode=require
 NEXTAUTH_SECRET=         NEXTAUTH_URL=
-GOOGLE_CLIENT_ID=        GOOGLE_CLIENT_SECRET=
-MSG91_AUTH_KEY=          MSG91_SENDER_ID=        MSG91_OTP_TEMPLATE_ID=
-RECAPTCHA_SITE_KEY=      RECAPTCHA_SECRET_KEY=
+# Email-OTP delivery (Gmail App Password to start; later swap to SES/Resend for scale)
+SMTP_HOST=smtp.gmail.com SMTP_PORT=587
+SMTP_USER=               SMTP_PASS=              SMTP_FROM="W3Codify <you@gmail.com>"
+GOOGLE_CLIENT_ID=        GOOGLE_CLIENT_SECRET=   # optional social login
+RECAPTCHA_SITE_KEY=      RECAPTCHA_SECRET_KEY=   # callback form only
+# MSG91/phone-OTP no longer used for login (email-OTP replaces it)
 AWS_REGION=ap-south-1    AWS_ACCESS_KEY_ID=      AWS_SECRET_ACCESS_KEY=
 S3_BUCKET_NAME=          CLOUDFRONT_URL=
 MUX_TOKEN_ID=            MUX_TOKEN_SECRET=
