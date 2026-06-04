@@ -22,19 +22,26 @@ export const authConfig = {
   callbacks: {
     jwt({ token, user, trigger, session }) {
       if (user) {
-        const u = user as { role?: Role; gender?: Gender; avatarUrl?: string | null };
+        const u = user as {
+          role?: Role; gender?: Gender; avatarUrl?: string | null;
+          firstName?: string | null; lastName?: string | null; name?: string | null;
+        };
         token.id = user.id;
         token.role = u.role;
         token.gender = u.gender ?? "UNSPECIFIED";
         token.avatarUrl = u.avatarUrl ?? null;
+        // Display name from firstName/lastName so the navbar shows the real name, not "Learner".
+        const composed = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
+        token.name = composed || u.name || token.name || null;
         token.loginAt = Date.now(); // for admin session-age hardening (§11)
       }
-      // Optimistic client patches (profile/onboarding) call `update({ gender, avatarUrl })`
-      // so the navbar avatar refreshes without a re-login or extra query.
+      // Optimistic client patches (profile/onboarding) call `update({ gender, avatarUrl, name })`
+      // so the navbar avatar + name refresh without a re-login or extra query.
       if (trigger === "update" && session && typeof session === "object") {
-        const s = session as { gender?: Gender; avatarUrl?: string | null };
+        const s = session as { gender?: Gender; avatarUrl?: string | null; name?: string | null };
         if (s.gender !== undefined) token.gender = s.gender;
         if (s.avatarUrl !== undefined) token.avatarUrl = s.avatarUrl;
+        if (s.name !== undefined) token.name = s.name || null;
       }
       return token;
     },

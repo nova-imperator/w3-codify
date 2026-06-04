@@ -207,8 +207,9 @@ function BasicInfo({
     });
     setBusy(false);
     if (res.ok) {
-      // Keep the navbar avatar in sync without a re-login.
-      await update({ gender });
+      // Keep the navbar avatar + name in sync without a re-login.
+      const name = [f.firstName, f.lastName].filter(Boolean).join(" ").trim();
+      await update({ gender, name });
       toast.success("Profile saved");
       router.refresh();
     } else toast.error(res.error);
