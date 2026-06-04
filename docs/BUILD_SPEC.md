@@ -695,8 +695,17 @@ public/  fonts/  og/
   against a hashed `OtpRequest` keyed by **email**, then upsert the `User` (create if new,
   `emailVerified=now`). Google provider optional (only if configured).
 - **Email delivery via SMTP** (nodemailer): send the OTP as a clean branded email. Config from
-  `SMTP_*` env (Gmail App Password to start — see §12). On a dev box with no SMTP set, fall
-  back to logging the code (never in production).
+  `SMTP_*` env (Gmail App Password to start — see §12).
+- 🔴 **CRITICAL SECURITY — never expose the OTP to the client.** The current phone-OTP code
+  RETURNS the code to the browser (`devCode`) and the form displays it whenever SMS isn't
+  configured, with **no `NODE_ENV` guard** — so in production anyone can read the code. The
+  email-OTP build MUST: only ever `console.log` the code when `NODE_ENV==='development'`,
+  **never return it in the API response or render it** in any environment, and in production
+  with no SMTP configured **fail hard** ("email not configured") rather than reveal the code.
+- 🔴 **Admin identifier must not be public.** The seed hardcodes the admin (`phone 9000000001`,
+  `email bradforbes24@hotmail.com`) in the **public repo** — combined with the above, that's a
+  one-click admin takeover. Make the admin email come from env (`ADMIN_EMAIL`, not committed),
+  rotate it, and never display dev codes for any account.
 - OTP: 6‑digit, **10‑min TTL**, max 5 attempts, resend cooldown 30s, **hashed at rest**,
   per‑IP + per‑email rate limit. Generic responses (don't reveal whether an email exists).
 - Email is the primary identifier: `User.email` **unique + required**, `emailVerified` set on
