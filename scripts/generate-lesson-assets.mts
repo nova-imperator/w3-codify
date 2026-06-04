@@ -166,4 +166,17 @@ ${quizRecap}
   }
 }
 
-console.log(`✓ generated ${images} study images and ${docs} notes docs`);
+// Course thumbnails for the newly-added courses (placeholders until the art pack
+// lands). Existing courses keep their designed thumbnails — don't overwrite them.
+const NEW_THUMB_SLUGS = ["prompt-engineering", "agentic-ai"];
+mkdirSync("public/images/courses", { recursive: true });
+let thumbs = 0;
+for (const course of COURSES) {
+  if (!NEW_THUMB_SLUGS.includes(course.slug)) continue;
+  const svg = studyCardSvg("W3Codify Course", "Advanced", course.title, course.subtitle);
+  const png = await sharp(Buffer.from(svg)).png().toBuffer();
+  writeFileSync(`public/images/courses/${course.slug}.png`, png);
+  thumbs++;
+}
+
+console.log(`✓ generated ${images} study images, ${docs} notes docs, ${thumbs} course thumbnails`);
