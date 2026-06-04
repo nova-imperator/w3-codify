@@ -23,7 +23,6 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
     "@auth/prisma-adapter": "^2.11.2",
     "@aws-sdk/client-s3": "^3.1058.0",
     "@aws-sdk/s3-request-presigner": "^3.1058.0",
@@ -51,7 +50,6 @@
     "nodemailer": "^7.0.13",
     "posthog-js": "^1.379.0",
     "prisma": "^6",
-    "razorpay": "^2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "^3.8.1",

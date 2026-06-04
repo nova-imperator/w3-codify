@@ -112,11 +112,34 @@ DISABLE_WEBPACK_CACHE=1 SKIP_BUILD_CHECKS=1 NODE_OPTIONS=--max-old-space-size=15
 test -f .next/BUILD_ID && pm2 reload ecosystem.config.js --update-env || echo "BUILD FAILED — not reloading"
 ```
 
+## 5b. Deploying on a SMALL box (t3.micro, ~908 MB) — pause→build→resume
+A `next build` needs ~1.5 GB. On t3.micro it does NOT fit while the app is also serving
+(that causes OOM/502). The safe pattern: **stop the app, build with the whole box, restart.**
+Costs ~2 min of downtime per deploy — fine for infrequent deploys. (On t3.small/2 GB you can
+skip this and use the graceful `pm2 reload` in §5.)
+```bash
+cd ~/w3-codify
+git pull --ff-only origin main
+pnpm install --frozen-lockfile
+pnpm prisma migrate deploy
+pm2 stop w3codify                 # <-- frees all RAM for the build (brief downtime)
+DISABLE_WEBPACK_CACHE=1 SKIP_BUILD_CHECKS=1 NODE_OPTIONS=--max-old-space-size=1536 pnpm build
+test -f .next/BUILD_ID && pm2 start ecosystem.config.js --update-env && pm2 save \
+  || echo "BUILD FAILED — app left stopped; investigate before restarting"
+```
+> ⚠️ For **destructive migrations** (dropping a table the running code uses), the app is
+> already stopped here, so there's no "old code hits new schema" window — another reason
+> this pattern is safer on a small box.
+
 ## 6. CI/CD (automate step 5)
 GitHub Actions on push to `main`: build, then SSH to EC2 and run the step-5 commands.
 - Add repo **secrets**: `EC2_HOST`, `EC2_SSH_KEY` (the `.pem` contents), `EC2_USER=ubuntu`.
 - Workflow `.github/workflows/deploy.yml` uses an SSH action to run the deploy script.
 - `.env` is **never** in CI — it already lives on the server from step 2.
+- ⚠️ **True off-box CI build is blocked** unless RDS is reachable from the runner — `next build`
+  does DB-backed static generation, and GitHub runners can't reach the firewalled RDS. To do
+  real cloud builds you must first make the DB-dependent pages build without a DB
+  (dynamic/ISR, empty `generateStaticParams`) + use `output: 'standalone'` + rsync the bundle.
 
 ---
 

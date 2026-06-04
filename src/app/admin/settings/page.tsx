@@ -38,10 +38,8 @@ export default async function AdminSettingsPage() {
     { name: "Google OAuth", ok: configured(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET), note: "Continue with Google" },
     { name: "reCAPTCHA v3", ok: configured(process.env.RECAPTCHA_SECRET_KEY, process.env.RECAPTCHA_SITE_KEY), note: "Bot protection on register/callback" },
     { name: "AWS S3 / CloudFront", ok: configured(process.env.AWS_ACCESS_KEY_ID, process.env.S3_BUCKET_NAME), note: "Media uploads (add-by-URL when off)" },
-    { name: "Razorpay", ok: configured(process.env.RAZORPAY_KEY_ID, process.env.RAZORPAY_KEY_SECRET), note: "Payments (Session 4)" },
     { name: "OpenAI (primary AI)", ok: configured(process.env.OPENAI_API_KEY), note: "Primary provider for tutor, chatbot, explain & review (§8)" },
     { name: "Google Gemini (fallback AI)", ok: configured(process.env.GEMINI_API_KEY), note: "Automatic fallback if OpenAI errors / 429 / times out" },
-    { name: "Anthropic Claude (optional AI)", ok: configured(process.env.ANTHROPIC_API_KEY), note: "Optional extra fallback provider" },
     { name: "Mux", ok: configured(process.env.MUX_TOKEN_ID, process.env.MUX_TOKEN_SECRET), note: "Video streaming (Session 5)" },
   ];
 

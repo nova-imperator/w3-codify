@@ -22,31 +22,12 @@ import { SmartImage } from "@/components/shared/smart-image";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatINR, formatDuration, discountPercent, cn } from "@/lib/utils";
 import { LAUNCH_ANCHOR_INR } from "@/lib/pricing";
 import { track } from "@/lib/analytics";
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
-  }
-}
-
-function loadRazorpay(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
 
 export function EnrollCard({
   courseId,
@@ -77,7 +58,6 @@ export function EnrollCard({
   const [wished, setWished] = React.useState(false);
   const [enrolled, setEnrolled] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
-  const [mockOpen, setMockOpen] = React.useState(false);
   const free = priceInr === 0;
   const discount = discountPercent(priceInr, mrpInr);
 
@@ -124,97 +104,19 @@ export function EnrollCard({
     }
   }
 
-  async function startPaid() {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/payments/razorpay/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId }),
-      });
-      const order = await res.json();
-      if (!res.ok) {
-        toast.error(order.error ?? "Could not start checkout.");
-        return;
-      }
-      if (order.mock) {
-        setMockOpen(true);
-        return;
-      }
-      const ok = await loadRazorpay();
-      if (!ok || !window.Razorpay) {
-        toast.error("Could not load the payment gateway.");
-        return;
-      }
-      const rzp = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: "W3Codify",
-        description: order.courseTitle,
-        order_id: order.orderId,
-        prefill: order.prefill,
-        theme: { color: "#6D5EF6" },
-        handler: async (resp: Record<string, string>) => {
-          const v = await fetch("/api/payments/razorpay/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ courseId, ...resp }),
-          });
-          if (v.ok) {
-            setEnrolled(true);
-            track("enroll", { courseId, slug, type: "paid" });
-            toast.success("Payment successful — you're enrolled!");
-            router.push("/classroom");
-          } else {
-            toast.error("Payment verification failed. Contact support.");
-          }
-        },
-      });
-      rzp.open();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function mockConfirm() {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/payments/mock-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId }),
-      });
-      if (res.ok) {
-        setMockOpen(false);
-        setEnrolled(true);
-        track("enroll", { courseId, slug, type: "test" });
-        toast.success("Test payment complete — you're enrolled!");
-        router.push("/classroom");
-      } else {
-        toast.error("Could not complete test enrollment.");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function onPrimary() {
     if (busy) return;
     if (enrolled) return router.push("/classroom");
     if (!loggedIn) return gotoSignin();
-    return free ? enrollFree() : startPaid();
+    // Everything is free right now — enroll directly (paid/Razorpay returns later).
+    return enrollFree();
   }
 
   const primaryLabel = enrolled
     ? "Go to classroom"
     : !loggedIn
-      ? free
-        ? "Sign in to start free"
-        : "Sign in to enroll"
-      : free
-        ? "Start for free"
-        : "Enroll now";
+      ? "Sign in to start free"
+      : "Enroll for free";
 
   async function share() {
     const url = `${window.location.origin}/courses/${slug}`;
@@ -356,25 +258,6 @@ export function EnrollCard({
           </ul>
         </div>
       </div>
-
-      {/* Test-mode checkout (shown only when Razorpay keys aren't set) */}
-      <Dialog open={mockOpen} onOpenChange={setMockOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <Badge variant="brand" className="mb-1 w-fit">Test mode</Badge>
-            <DialogTitle>Simulate payment</DialogTitle>
-            <DialogDescription>
-              Razorpay isn&apos;t configured yet, so this simulates a successful
-              payment of {formatINR(priceInr)} for <strong>{title}</strong> and
-              enrolls you. Add Razorpay keys to take real payments.
-            </DialogDescription>
-          </DialogHeader>
-          <Button size="lg" onClick={mockConfirm} disabled={busy}>
-            {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-            Simulate successful payment
-          </Button>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

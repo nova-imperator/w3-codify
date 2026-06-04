@@ -71,7 +71,7 @@ early‑career devs aged 18–28. Mobile traffic is majority — **mobile‑firs
 | Video | **Mux** (preferred) or S3 + CloudFront HLS | adaptive streaming, signed playback |
 | Payments | **Razorpay** | ₹ checkout for paid cohorts |
 | Email | **AWS SES** or **Resend** | transactional |
-| AI | **Multi-provider w/ fallback** — OpenAI (primary) → Gemini (fallback), Anthropic optional. One abstraction, uniform streaming. | §8 |
+| AI | **Multi-provider w/ fallback** — OpenAI (primary) → Gemini (fallback). One abstraction, uniform streaming. | §8 |
 
 ### Infra / DevOps
 - **Host:** existing **EC2 (Ubuntu 26.04, ap‑south‑1)** behind **Nginx** reverse proxy, app under **PM2** (or Docker Compose).
@@ -570,7 +570,6 @@ behind which we run multiple LLM providers with **automatic fallback**:
 - **Primary: OpenAI** (`OPENAI_API_KEY`) — default for all AI calls.
 - **Fallback: Google Gemini** (`GEMINI_API_KEY`) — used automatically if OpenAI errors,
   rate-limits (429), or times out.
-- **Optional: Anthropic** (`ANTHROPIC_API_KEY`) — if set, may be used; otherwise skip.
 - Order is config-driven (env, e.g. `AI_PROVIDER_ORDER=openai,gemini`). All providers expose
   the same streaming interface so callers don't care which one answered. Log which provider
   served each request (for debugging), never expose keys client-side.
@@ -615,9 +614,7 @@ POST /api/auth/otp/verify      { phone, code }           -> session
 POST /api/auth/register        { firstName,lastName,phone,email,consent,captcha }
 GET  /api/courses              ?tag&level&q              -> list
 GET  /api/courses/[slug]                                  -> detail
-POST /api/enrollments          { courseId }              -> enroll (auth)
-POST /api/payments/razorpay/order   { courseId }         -> order
-POST /api/payments/razorpay/verify  { ... }              -> confirm + enroll
+POST /api/enrollments          { courseId }              -> enroll free (auth)
 GET  /api/profile              (auth)                    -> me
 PATCH /api/profile             (auth) { ...fields }       -> update
 POST /api/profile/avatar       (auth) multipart          -> S3 upload -> url
@@ -654,7 +651,7 @@ src/
     ui/            # shadcn primitives (themed)
     marketing/     # Hero, Stats, CourseCarousel, FeatureGrid, Roadmap, Testimonials...
     course/  profile/  classroom/  ai/  shared/
-  lib/             # prisma, auth, anthropic, s3, razorpay, msg91, recaptcha, utils
+  lib/             # prisma, auth, s3, msg91, recaptcha, utils
   hooks/  stores/  styles/tokens.css
   server/          # services, validators (zod schemas shared)
 prisma/ schema.prisma  migrations/
@@ -708,8 +705,6 @@ RECAPTCHA_SITE_KEY=      RECAPTCHA_SECRET_KEY=   # callback form only
 AWS_REGION=ap-south-1    AWS_ACCESS_KEY_ID=      AWS_SECRET_ACCESS_KEY=
 S3_BUCKET_NAME=          CLOUDFRONT_URL=
 MUX_TOKEN_ID=            MUX_TOKEN_SECRET=
-RAZORPAY_KEY_ID=         RAZORPAY_KEY_SECRET=
-ANTHROPIC_API_KEY=
 SES_FROM_EMAIL= (or RESEND_API_KEY=)
 ```
 

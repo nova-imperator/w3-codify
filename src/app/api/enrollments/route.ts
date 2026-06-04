@@ -13,7 +13,9 @@ export async function GET() {
 
 const schema = z.object({ courseId: z.string().min(1) });
 
-// POST /api/enrollments { courseId } -> enroll in a FREE course (§9).
+// POST /api/enrollments { courseId } -> enroll for FREE (§9).
+// Everything is free right now (no payment step). Paid checkout / Razorpay
+// can return here later if the `paid_pricing` flag is ever turned on.
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
@@ -23,12 +25,9 @@ export async function POST(req: Request) {
 
   const course = await prisma.course.findFirst({
     where: { id: parsed.data.courseId, status: "PUBLISHED" },
-    select: { id: true, priceInr: true },
+    select: { id: true },
   });
   if (!course) return NextResponse.json({ error: "Course not found." }, { status: 404 });
-  if (course.priceInr > 0) {
-    return NextResponse.json({ error: "This course requires payment." }, { status: 402 });
-  }
 
   await enrollUser(user.id, course.id, "FREE");
   return NextResponse.json({ ok: true });

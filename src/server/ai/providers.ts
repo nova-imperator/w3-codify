@@ -1,11 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 /**
  * Multi-provider AI abstraction (BUILD_SPEC §8). One uniform streaming interface
- * behind which we run OpenAI (primary) → Gemini (fallback) → Anthropic (optional),
- * with automatic fail-over: if a provider errors / 429s / times out BEFORE it
- * streams its first token, we transparently try the next provider in the list.
- * Order is config-driven via AI_PROVIDER_ORDER. Keys never leave the server.
+ * behind which we run OpenAI (primary) → Gemini (fallback), with automatic
+ * fail-over: if a provider errors / 429s / times out BEFORE it streams its first
+ * token, we transparently try the next provider in the list. Order is
+ * config-driven via AI_PROVIDER_ORDER. Keys never leave the server.
  */
 
 export type AiRole = "user" | "assistant";
@@ -24,7 +22,6 @@ export type AiRequest = {
 const MODELS = {
   openai: { tutor: "gpt-4o", cheap: "gpt-4o-mini" },
   gemini: { tutor: "gemini-2.5-flash", cheap: "gemini-2.5-flash-lite" },
-  anthropic: { tutor: "claude-sonnet-4-6", cheap: "claude-haiku-4-5" },
 } as const;
 
 export type ProviderName = keyof typeof MODELS;
@@ -33,11 +30,7 @@ const CONNECT_TIMEOUT_MS = 18_000;
 
 function keyFor(name: ProviderName): string {
   const raw =
-    name === "openai"
-      ? process.env.OPENAI_API_KEY
-      : name === "gemini"
-        ? process.env.GEMINI_API_KEY
-        : process.env.ANTHROPIC_API_KEY;
+    name === "openai" ? process.env.OPENAI_API_KEY : process.env.GEMINI_API_KEY;
   return (raw ?? "").trim();
 }
 
@@ -52,7 +45,7 @@ export function providerOrder(): ProviderName[] {
   const wanted = raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
-    .filter((n): n is ProviderName => n === "openai" || n === "gemini" || n === "anthropic");
+    .filter((n): n is ProviderName => n === "openai" || n === "gemini");
   const order = wanted.length ? wanted : (["openai", "gemini"] as ProviderName[]);
   return order.filter(isConfigured);
 }
@@ -150,28 +143,9 @@ async function* streamGemini(req: AiRequest): AsyncGenerator<string> {
   }
 }
 
-// ─────────────────────────── Anthropic (optional) ───────────────────────────
-let anthropic: Anthropic | null = null;
-async function* streamAnthropic(req: AiRequest): AsyncGenerator<string> {
-  if (!anthropic) anthropic = new Anthropic({ apiKey: keyFor("anthropic") });
-  const model = MODELS.anthropic[req.task ?? "tutor"];
-  const stream = anthropic.messages.stream({
-    model,
-    max_tokens: req.maxTokens ?? 1024,
-    system: req.system,
-    messages: req.messages,
-  });
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      yield event.delta.text;
-    }
-  }
-}
-
 const IMPL: Record<ProviderName, (req: AiRequest) => AsyncGenerator<string>> = {
   openai: streamOpenAI,
   gemini: streamGemini,
-  anthropic: streamAnthropic,
 };
 
 export const STREAM_HEADERS = {
