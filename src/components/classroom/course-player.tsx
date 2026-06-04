@@ -3,13 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Check,
   PlayCircle,
   Clock,
   ChevronLeft,
   ChevronRight,
-  ListVideo,
   Sparkles,
   X,
   ArrowLeft,
@@ -18,6 +18,10 @@ import {
   Circle,
   Award,
   ListChecks,
+  PanelLeft,
+  PanelLeftClose,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { cn, formatDuration } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,6 +52,38 @@ type Lp = {
 };
 type View = { kind: "lesson"; id: string } | { kind: "assessment"; id: string };
 
+// Persisted layout/resume state, per course.
+type Persisted = { v?: View; sb?: boolean; tu?: boolean; fo?: boolean };
+
+function persistKey(courseId: string) {
+  return `w3c:classroom:${courseId}`;
+}
+
+/** Don't fire shortcuts while typing in a field or the code editor. */
+function isTypingTarget(el: Element | null): boolean {
+  if (!el) return false;
+  const tag = el.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    (el as HTMLElement).isContentEditable ||
+    !!el.closest(".monaco-editor")
+  );
+}
+
+function useIsDesktop() {
+  const [desktop, setDesktop] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const on = () => setDesktop(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return desktop;
+}
+
 export function CoursePlayer({
   courseId,
   courseTitle,
@@ -72,55 +108,206 @@ export function CoursePlayer({
   aiTutorEnabled?: boolean;
 }) {
   const flat = React.useMemo(() => sections.flatMap((s) => s.lessons), [sections]);
+  const reduce = useReducedMotion();
+  const isDesktop = useIsDesktop();
+
   const [lp, setLp] = React.useState<Record<string, Lp>>(initialProgress.lessons ?? {});
   const [aResults, setAResults] = React.useState<Record<string, { passed: boolean }>>(
     initialProgress.assessments ?? {},
   );
   const [certified, setCertified] = React.useState(!!initialProgress.certificate);
   const [view, setView] = React.useState<View>({ kind: "lesson", id: flat[0]?.id ?? "" });
-  const [lessonsOpen, setLessonsOpen] = React.useState(false);
-  const [tutorOpen, setTutorOpen] = React.useState(false);
 
+  // Layout: sidebar open by default, tutor closed by default (overridden by persistence).
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [tutorOpen, setTutorOpen] = React.useState(false);
+  const [focusMode, setFocusMode] = React.useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  const validView = React.useCallback(
+    (v: View) =>
+      (v.kind === "lesson" && flat.some((l) => l.id === v.id)) ||
+      (v.kind === "assessment" && assessments.some((a) => a.id === v.id)),
+    [flat, assessments],
+  );
+
+  // Restore persisted layout + last lesson (resume). Falls back to viewport defaults.
   React.useEffect(() => {
-    if (aiTutorEnabled && window.matchMedia("(min-width: 1280px)").matches) setTutorOpen(true);
-  }, [aiTutorEnabled]);
+    setMounted(true);
+    let saved: Persisted | null = null;
+    try {
+      const raw = localStorage.getItem(persistKey(courseId));
+      if (raw) saved = JSON.parse(raw) as Persisted;
+    } catch {
+      /* ignore corrupt storage */
+    }
+    if (saved?.v && validView(saved.v)) setView(saved.v);
+    if (typeof saved?.tu === "boolean") setTutorOpen(saved.tu);
+    if (typeof saved?.fo === "boolean") setFocusMode(saved.fo);
+    if (typeof saved?.sb === "boolean") setSidebarOpen(saved.sb);
+    else if (!window.matchMedia("(min-width: 1024px)").matches) setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId]);
+
+  // Persist on change.
+  React.useEffect(() => {
+    if (!mounted) return;
+    try {
+      const data: Persisted = { v: view, sb: sidebarOpen, tu: tutorOpen, fo: focusMode };
+      localStorage.setItem(persistKey(courseId), JSON.stringify(data));
+    } catch {
+      /* storage full / unavailable */
+    }
+  }, [mounted, courseId, view, sidebarOpen, tutorOpen, focusMode]);
 
   const total = flat.length;
   const completedCount = flat.filter((l) => lp[l.id]?.completed).length;
   const percent = total ? Math.round((completedCount / total) * 100) : 0;
 
-  function select(v: View) {
+  const activeLesson = view.kind === "lesson" ? flat.find((l) => l.id === view.id) ?? flat[0] : null;
+  const activeAssessment =
+    view.kind === "assessment" ? assessments.find((a) => a.id === view.id) ?? null : null;
+  const lessonIdx = activeLesson ? flat.findIndex((l) => l.id === activeLesson.id) : -1;
+  const hasNext = lessonIdx >= 0 && (lessonIdx < total - 1 || assessments.length > 0);
+
+  const select = React.useCallback((v: View) => {
     setView(v);
-    setLessonsOpen(false);
+    setMobileNavOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  }, []);
+
+  const goPrev = React.useCallback(() => {
+    if (lessonIdx > 0) select({ kind: "lesson", id: flat[lessonIdx - 1].id });
+  }, [lessonIdx, flat, select]);
+
+  const goNext = React.useCallback(() => {
+    if (lessonIdx >= 0 && lessonIdx < total - 1) {
+      select({ kind: "lesson", id: flat[lessonIdx + 1].id });
+    } else if (lessonIdx === total - 1 && assessments.length > 0) {
+      select({ kind: "assessment", id: assessments[0].id });
+    }
+  }, [lessonIdx, total, flat, assessments, select]);
+
+  // Keyboard shortcuts (stable listener via ref).
+  const actionsRef = React.useRef({ goPrev, goNext, sidebarOpen, tutorOpen, mobileNavOpen, isDesktop });
+  actionsRef.current = { goPrev, goNext, sidebarOpen, tutorOpen, mobileNavOpen, isDesktop };
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const a = actionsRef.current;
+      if (e.key === "Escape") {
+        if (a.mobileNavOpen) setMobileNavOpen(false);
+        else if (a.tutorOpen) setTutorOpen(false);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(document.activeElement)) return;
+      const k = e.key.toLowerCase();
+      if (k === "arrowright" || k === "k") {
+        e.preventDefault();
+        a.goNext();
+      } else if (k === "arrowleft" || k === "j") {
+        e.preventDefault();
+        a.goPrev();
+      } else if (k === "t" && aiTutorEnabled) {
+        e.preventDefault();
+        setTutorOpen((o) => !o);
+      } else if (k === "f") {
+        e.preventDefault();
+        setFocusMode((f) => !f);
+      } else if (k === "b") {
+        e.preventDefault();
+        if (a.isDesktop) setSidebarOpen((o) => !o);
+        else setMobileNavOpen((o) => !o);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [aiTutorEnabled]);
 
   if (!flat.length) {
     return <p className="container-page py-32 text-center text-fg-muted">This course has no lessons yet.</p>;
   }
 
-  const activeLesson = view.kind === "lesson" ? flat.find((l) => l.id === view.id) ?? flat[0] : null;
-  const activeAssessment =
-    view.kind === "assessment" ? assessments.find((a) => a.id === view.id) ?? null : null;
+  const showSidebar = sidebarOpen && !focusMode;
+  const showTutor = aiTutorEnabled && tutorOpen && !focusMode;
+  const slide = reduce
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 380, damping: 40 };
+
+  function toggleContents() {
+    if (isDesktop) setSidebarOpen((o) => !o);
+    else setMobileNavOpen((o) => !o);
+  }
+
+  const nav = (
+    <Nav sections={sections} assessments={assessments} lp={lp} aResults={aResults} view={view} onSelect={select} />
+  );
 
   return (
     <div className="lg:flex">
-      {/* Desktop sidebar */}
-      <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-80 shrink-0 flex-col overflow-y-auto border-r border-border bg-bg-elevated/40 lg:flex">
-        <SidebarHeader courseId={courseId} courseSlug={courseSlug} courseTitle={courseTitle} percent={percent} completed={completedCount} total={total} certified={certified} />
-        <Nav sections={sections} assessments={assessments} lp={lp} aResults={aResults} view={view} onSelect={select} />
-      </aside>
+      {/* Desktop sidebar — sticky, independent native scroll (trackpad/wheel/touch). */}
+      <motion.aside
+        className="hidden w-80 shrink-0 lg:block"
+        initial={false}
+        animate={{ marginLeft: showSidebar ? 0 : "-20rem", opacity: showSidebar ? 1 : 0 }}
+        transition={slide}
+        aria-hidden={!showSidebar}
+        inert={!showSidebar ? true : undefined}
+      >
+        <div className="sticky top-16 flex h-[calc(100dvh-4rem)] flex-col overflow-y-auto overscroll-contain border-r border-border bg-bg-elevated/40">
+          <SidebarHeader courseId={courseId} courseSlug={courseSlug} courseTitle={courseTitle} percent={percent} completed={completedCount} total={total} certified={certified} />
+          {nav}
+        </div>
+      </motion.aside>
 
       {/* Main */}
       <main className="min-w-0 flex-1 pt-16">
-        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 lg:hidden">
-          <button onClick={() => setLessonsOpen(true)} className="inline-flex items-center gap-2 text-sm font-medium text-fg-muted">
-            <ListVideo className="size-4" /> Contents
+        {/* Toolbar: contents toggle + progress + focus/tutor */}
+        <div className="sticky top-16 z-20 flex items-center gap-3 border-b border-border bg-bg/80 px-4 py-2.5 backdrop-blur-md">
+          <button
+            onClick={toggleContents}
+            className="grid size-9 shrink-0 place-items-center rounded-[10px] text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg"
+            aria-label={showSidebar ? "Hide contents" : "Show contents"}
+            title="Toggle contents (B)"
+          >
+            {showSidebar ? <PanelLeftClose className="size-5" /> : <PanelLeft className="size-5" />}
           </button>
-          <span className="text-xs text-fg-faint">{percent}% complete</span>
-          {activeLesson && aiTutorEnabled && (
-            <button onClick={() => setTutorOpen(true)} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand">
-              <Sparkles className="size-4" /> AI Tutor
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2 text-xs text-fg-muted">
+              <span className="truncate">
+                {activeAssessment ? activeAssessment.title : `Lesson ${lessonIdx + 1} of ${total}`}
+              </span>
+              <span className="shrink-0 tabular-nums">{percent}% complete</span>
+            </div>
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-bg-subtle" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+              <div className="bg-accent-grad h-full rounded-full transition-all" style={{ width: `${percent}%` }} />
+            </div>
+          </div>
+          <button
+            onClick={() => setFocusMode((f) => !f)}
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-bg-subtle",
+              focusMode ? "text-brand" : "text-fg-muted hover:text-fg",
+            )}
+            aria-pressed={focusMode}
+            aria-label="Focus mode"
+            title="Focus mode (F)"
+          >
+            {focusMode ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
+          </button>
+          {aiTutorEnabled && (
+            <button
+              onClick={() => setTutorOpen((o) => !o)}
+              className={cn(
+                "hidden size-9 shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-bg-subtle sm:grid",
+                tutorOpen ? "text-brand" : "text-fg-muted hover:text-fg",
+              )}
+              aria-pressed={tutorOpen}
+              aria-label="AI Tutor"
+              title="AI Tutor (T)"
+            >
+              <Sparkles className="size-5" />
             </button>
           )}
         </div>
@@ -150,57 +337,135 @@ export function CoursePlayer({
             key={activeLesson.id}
             courseId={courseId}
             lesson={activeLesson}
-            index={flat.findIndex((l) => l.id === activeLesson.id)}
+            index={lessonIdx}
             total={total}
+            hasNext={hasNext}
             state={lp[activeLesson.id] ?? {}}
             submissions={submissions}
             onLessonState={(s) => setLp((prev) => ({ ...prev, [activeLesson.id]: { ...prev[activeLesson.id], ...s } }))}
-            onPrev={() => {
-              const i = flat.findIndex((l) => l.id === activeLesson.id);
-              if (i > 0) select({ kind: "lesson", id: flat[i - 1].id });
-            }}
-            onNext={() => {
-              const i = flat.findIndex((l) => l.id === activeLesson.id);
-              if (i < total - 1) select({ kind: "lesson", id: flat[i + 1].id });
-            }}
+            onPrev={goPrev}
+            onNext={goNext}
           />
         ) : null}
       </main>
 
-      {/* Tutor dock */}
-      {aiTutorEnabled && tutorOpen && activeLesson && (
-        <div className="fixed inset-0 z-40 bg-black/60 xl:hidden" onClick={() => setTutorOpen(false)} />
-      )}
+      {/* Desktop AI tutor — in-flow, slides in from the right; main widens when closed. */}
       {aiTutorEnabled && activeLesson && (
-        <aside
-          className={cn(
-            "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-bg transition-transform xl:sticky xl:top-16 xl:z-auto xl:h-[calc(100dvh-4rem)] xl:w-[380px] xl:translate-x-0",
-            tutorOpen ? "translate-x-0" : "translate-x-full xl:hidden",
-          )}
+        <motion.aside
+          className="hidden w-[380px] shrink-0 lg:block"
+          initial={false}
+          animate={{ marginRight: showTutor ? 0 : "-380px", opacity: showTutor ? 1 : 0 }}
+          transition={slide}
+          aria-hidden={!showTutor}
+          inert={!showTutor ? true : undefined}
         >
-          <button onClick={() => setTutorOpen(false)} className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-bg-subtle xl:hidden" aria-label="Close tutor">
-            <X className="size-5" />
-          </button>
-          <AiTutorPanel courseId={courseId} lessonId={activeLesson.id} lessonTitle={activeLesson.title} />
-        </aside>
+          <div className="sticky top-16 h-[calc(100dvh-4rem)] overflow-hidden border-l border-border bg-bg-elevated/30">
+            <AiTutorPanel
+              key={activeLesson.id}
+              courseId={courseId}
+              lessonId={activeLesson.id}
+              lessonTitle={activeLesson.title}
+            />
+          </div>
+        </motion.aside>
       )}
 
-      {/* Mobile contents drawer */}
-      {lessonsOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setLessonsOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-[88%] max-w-sm flex-col border-r border-border bg-bg">
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <span className="font-semibold">Course contents</span>
-              <button onClick={() => setLessonsOpen(false)} aria-label="Close"><X className="size-5 text-fg-muted" /></button>
-            </div>
-            <div className="overflow-y-auto">
-              <Nav sections={sections} assessments={assessments} lp={lp} aResults={aResults} view={view} onSelect={select} />
-            </div>
-          </aside>
-        </div>
+      {/* Floating "Ask AI Tutor" toggle (when closed) */}
+      {aiTutorEnabled && activeLesson && !showTutor && (
+        <button
+          onClick={() => setTutorOpen(true)}
+          className="bg-accent-grad fixed bottom-5 right-5 z-30 inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.6)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          aria-label="Open AI Tutor"
+          title="Ask AI Tutor (T)"
+        >
+          <Sparkles className="size-5" />
+          <span className="hidden sm:inline">Ask AI Tutor</span>
+        </button>
+      )}
+
+      {/* Mobile: contents bottom-sheet */}
+      {mounted && (
+        <BottomSheet open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} title="Course contents" reduce={reduce}>
+          <div className="h-full overflow-y-auto overscroll-contain">
+            <SidebarHeader courseId={courseId} courseSlug={courseSlug} courseTitle={courseTitle} percent={percent} completed={completedCount} total={total} certified={certified} />
+            {nav}
+          </div>
+        </BottomSheet>
+      )}
+
+      {/* Mobile: AI tutor bottom-sheet */}
+      {mounted && aiTutorEnabled && activeLesson && (
+        <BottomSheet
+          open={tutorOpen && !isDesktop}
+          onClose={() => setTutorOpen(false)}
+          title="AI Tutor"
+          reduce={reduce}
+          height="h-[80dvh]"
+        >
+          <AiTutorPanel courseId={courseId} lessonId={activeLesson.id} lessonTitle={activeLesson.title} />
+        </BottomSheet>
       )}
     </div>
+  );
+}
+
+function BottomSheet({
+  open,
+  onClose,
+  title,
+  children,
+  reduce,
+  height = "max-h-[85dvh]",
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  reduce: boolean | null;
+  height?: string;
+}) {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (open) panelRef.current?.focus();
+  }, [open]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 lg:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduce ? 0 : 0.2 }}
+        >
+          <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            tabIndex={-1}
+            className={cn(
+              "absolute inset-x-0 bottom-0 flex flex-col rounded-t-[20px] border-t border-border bg-bg outline-none",
+              height,
+            )}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 40 }}
+          >
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <span className="font-semibold">{title}</span>
+              <button onClick={onClose} aria-label="Close" className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-bg-subtle">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -209,6 +474,7 @@ function LessonView({
   lesson,
   index,
   total,
+  hasNext,
   state,
   submissions,
   onLessonState,
@@ -219,6 +485,7 @@ function LessonView({
   lesson: Lesson;
   index: number;
   total: number;
+  hasNext: boolean;
   state: Lp;
   submissions?: SavedCode;
   onLessonState: (s: Partial<Lp>) => void;
@@ -266,13 +533,14 @@ function LessonView({
     }
   }
 
-  async function markDone() {
+  async function completeAndNext() {
     setBusy(true);
     const res = await markLessonDone(courseId, lesson.id);
     setBusy(false);
     if (res.ok) {
       onLessonState({ completed: true });
       toast.success("Marked complete");
+      onNext();
     } else toast.error(res.error);
   }
 
@@ -326,7 +594,7 @@ function LessonView({
         />
       </div>
 
-      {/* Completion status */}
+      {/* Completion + navigation */}
       <div className="mt-10 border-t border-border pt-6">
         {completed ? (
           <p className="flex items-center gap-2 font-medium text-success"><CheckCircle2 className="size-5" /> Lesson complete</p>
@@ -337,19 +605,27 @@ function LessonView({
             {quizCount > 0 && <Gate done={quizPassed === quizCount}>Pass all checkpoints ({quizPassed}/{quizCount})</Gate>}
             {exerciseIds.length > 0 && <Gate done={exercisePassed === exerciseIds.length}>Pass the code exercise{exerciseIds.length > 1 ? "s" : ""} ({exercisePassed}/{exerciseIds.length})</Gate>}
           </div>
-        ) : (
-          <Button onClick={markDone} disabled={busy}>
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Mark as done
-          </Button>
-        )}
+        ) : null}
 
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-6 flex items-center justify-between gap-3">
           <Button variant="ghost" size="sm" disabled={index <= 0} onClick={onPrev}>
             <ChevronLeft className="size-4" /> Previous
           </Button>
-          <Button variant="ghost" size="sm" disabled={index >= total - 1} onClick={onNext}>
-            Next <ChevronRight className="size-4" />
-          </Button>
+
+          {completed ? (
+            <Button size="sm" onClick={onNext} disabled={!hasNext}>
+              {hasNext ? "Next lesson" : "All done"} <ChevronRight className="size-4" />
+            </Button>
+          ) : gated ? (
+            <Button variant="secondary" size="sm" onClick={onNext} disabled={!hasNext}>
+              Next <ChevronRight className="size-4" />
+            </Button>
+          ) : (
+            <Button size="sm" onClick={completeAndNext} disabled={busy}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+              Mark complete &amp; Next
+            </Button>
+          )}
         </div>
       </div>
     </article>
@@ -417,6 +693,7 @@ function Nav({
                 <li key={l.id}>
                   <button
                     onClick={() => onSelect({ kind: "lesson", id: l.id })}
+                    aria-current={active ? "true" : undefined}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-sm transition-colors",
                       active ? "bg-brand/12 text-fg" : "text-fg-muted hover:bg-bg-subtle hover:text-fg",
@@ -450,6 +727,7 @@ function Nav({
                 <li key={a.id}>
                   <button
                     onClick={() => onSelect({ kind: "assessment", id: a.id })}
+                    aria-current={active ? "true" : undefined}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-sm transition-colors",
                       active ? "bg-brand/12 text-fg" : "text-fg-muted hover:bg-bg-subtle hover:text-fg",
