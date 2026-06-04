@@ -154,19 +154,13 @@ async function main() {
 
 // Admin account + demo students/enrollments/leads so the panel is populated.
 async function seedAdminAndDemo() {
-  const admin = await prisma.user.upsert({
-    where: { phone: "9000000001" },
-    update: { role: "ADMIN", firstName: "Brad", lastName: "Forbes", phoneVerified: true },
-    create: {
-      phone: "9000000001",
-      firstName: "Brad",
-      lastName: "Forbes",
-      email: "bradforbes24@hotmail.com",
-      role: "ADMIN",
-      phoneVerified: true,
-    },
-  });
-  console.log(`admin ready: ${admin.phone} (${admin.role})`);
+  // SECURITY: no hardcoded admin is seeded — the old public one (phone 9000000001 /
+  // bradforbes24@hotmail.com) was an admin-takeover risk. Sign in normally, then have an
+  // admin promote your account (role = ADMIN). Demo users/leads only seed when SEED_DEMO=true.
+  if (process.env.SEED_DEMO !== "true") {
+    console.log("SEED_DEMO not set — skipping demo users/leads (no admin seeded)");
+    return;
+  }
 
   const demoStudents = [
     { phone: "9810000001", firstName: "Priya", lastName: "Sharma", email: "priya.demo@w3codify.com", slug: "machine-learning-deep-learning" },
