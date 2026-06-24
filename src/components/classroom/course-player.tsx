@@ -26,6 +26,7 @@ import {
 import { cn, formatDuration } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LessonBlocks, type RenderBlock, type QuizState } from "./lesson-blocks";
+import { ResumableVideo } from "./resumable-video";
 import { AiTutorPanel } from "./ai-tutor-panel";
 import { AssessmentPanel, type AssessmentData } from "./assessment-panel";
 import {
@@ -552,7 +553,12 @@ function LessonView({
       {/* Video */}
       {lesson.videoUrl ? (
         <div className="mt-6 aspect-video overflow-hidden rounded-[16px] border border-border bg-black">
-          <iframe src={lesson.videoUrl} className="size-full" allowFullScreen title={lesson.title} />
+          <ResumableVideo
+            lessonId={lesson.id}
+            src={lesson.videoUrl}
+            title={lesson.title}
+            className="size-full"
+          />
         </div>
       ) : hasVideo ? null : (
         <div className="mt-6 grid aspect-video place-items-center rounded-[16px] border border-border bg-bg-elevated">

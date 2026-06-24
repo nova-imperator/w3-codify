@@ -160,8 +160,13 @@ export function SiteChatbot() {
               </button>
             </div>
 
-            {/* Messages */}
-            <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto bg-bg p-4">
+            {/* Messages — own scroll container; data-lenis-prevent stops the
+                site-wide Lenis smooth scroll from hijacking the wheel here. */}
+            <div
+              ref={scrollRef}
+              data-lenis-prevent
+              className="flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain bg-bg p-4"
+            >
               {messages.map((m, i) => (
                 <div key={i} className={cn("flex gap-2.5", m.role === "user" && "flex-row-reverse")}>
                   <span

@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import { CourseCard } from "@/components/course/course-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { courseMatchesQuery } from "@/lib/search";
 import type { CourseCardData } from "@/server/courses";
 
 type Delivery = "all" | "live" | "self";
@@ -29,16 +30,13 @@ export function CourseCatalog({ courses }: { courses: CourseCardData[] }) {
   }, [allTags]);
 
   const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     return courses.filter((c) => {
       if (tag && !c.tags.includes(tag)) return false;
       if (level !== "all" && c.level !== level) return false;
       if (delivery === "live" && !c.isLive) return false;
       if (delivery === "self" && c.isLive) return false;
-      if (q) {
-        const hay = `${c.title} ${c.blurb} ${c.instructor} ${c.tags.join(" ")}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
+      if (q && !courseMatchesQuery(c, q)) return false;
       return true;
     });
   }, [courses, query, tag, level, delivery]);

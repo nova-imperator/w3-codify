@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
+import { validatePersonName } from "@/server/validators";
 
 /** Formats raw digits to "98765 43210" for display (§5.6 #7 auto-format). */
 function formatPhone(digits: string) {
@@ -50,7 +51,8 @@ export function RequestCallbackDialog({
 
   function validate(): boolean {
     const next: Errors = {};
-    if (name.trim().length < 2) next.name = "Please enter your name.";
+    const nameErr = validatePersonName(name);
+    if (nameErr) next.name = nameErr;
     const digits = phone.replace(/\D/g, "");
     if (digits.length !== 10) next.phone = "Enter a valid 10-digit number.";
     setErrors(next);
@@ -128,18 +130,33 @@ export function RequestCallbackDialog({
                   value={name}
                   autoComplete="name"
                   placeholder="Your full name"
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errors.name) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        name: validatePersonName(e.target.value) ?? undefined,
+                      }));
+                    }
+                  }}
+                  onBlur={(e) =>
+                    setErrors((prev) => ({
+                      ...prev,
+                      name: validatePersonName(e.target.value) ?? undefined,
+                    }))
+                  }
                   aria-invalid={!!errors.name}
                 />
               </Field>
 
               <Field label="Phone no." error={errors.phone} htmlFor="cb-phone">
-                <div className="flex gap-2">
-                  <span className="inline-flex h-11 select-none items-center rounded-[12px] border border-border bg-bg-subtle px-3 text-sm text-fg-muted">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-11 shrink-0 select-none items-center gap-1 rounded-[12px] border border-border bg-bg-subtle px-3 text-sm leading-none text-fg-muted">
                     🇮🇳 +91
                   </span>
                   <Input
                     id="cb-phone"
+                    className="flex-1"
                     inputMode="numeric"
                     autoComplete="tel"
                     placeholder="98765 43210"

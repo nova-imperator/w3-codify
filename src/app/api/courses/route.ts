@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPublishedCourseCards } from "@/server/courses";
 import { coursesQuerySchema } from "@/server/validators";
+import { courseMatchesQuery } from "@/lib/search";
 
 export const revalidate = 300;
 
@@ -29,12 +30,11 @@ export async function GET(req: Request) {
       cards = cards.filter((c) => c.tags.some((x) => x.toLowerCase() === t));
     }
     if (q) {
-      const needle = q.toLowerCase();
-      cards = cards.filter(
-        (c) =>
-          c.title.toLowerCase().includes(needle) ||
-          c.blurb.toLowerCase().includes(needle) ||
-          c.tags.some((x) => x.toLowerCase().includes(needle)),
+      cards = cards.filter((c) =>
+        courseMatchesQuery(
+          { title: c.title, blurb: c.blurb, instructor: c.instructor, tags: c.tags },
+          q,
+        ),
       );
     }
     return NextResponse.json({ courses: cards, count: cards.length });

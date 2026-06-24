@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Markdown } from "@/components/shared/markdown";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ResumableVideo } from "./resumable-video";
 import { cn } from "@/lib/utils";
 
 export type RenderBlock = {
@@ -86,12 +87,11 @@ function Block({
       if (!url) return null;
       return (
         <div className="aspect-video overflow-hidden rounded-[14px] border border-border bg-black">
-          <iframe
+          <ResumableVideo
+            lessonId={`block:${block.id}`}
             src={url}
-            className="size-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
             title="Lesson media"
+            className="size-full"
           />
         </div>
       );

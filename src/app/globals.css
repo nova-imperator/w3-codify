@@ -156,8 +156,11 @@
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.05;
+    /* Display font (Clash) reads cramped with tight negative tracking — keep
+       it near-neutral so multi-word headings have clear word spacing. */
+    letter-spacing: -0.005em;
+    line-height: 1.08;
+    word-spacing: 0.02em;
     color: var(--fg);
     text-wrap: balance;
   }

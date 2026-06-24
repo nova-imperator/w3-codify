@@ -3,9 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptcha } from "@/lib/recaptcha";
 import { normalizePhone, isValidPhone } from "@/lib/otp";
+import { personNameSchema } from "@/server/validators";
 
 const schema = z.object({
-  name: z.string().trim().min(2).max(80),
+  name: personNameSchema,
   phone: z.string().min(8).max(20),
   enquiryFor: z.string().trim().max(60).default("Online Course (Website)"),
   message: z.string().trim().max(1000).optional().or(z.literal("")),

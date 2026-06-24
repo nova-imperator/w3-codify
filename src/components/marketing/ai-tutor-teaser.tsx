@@ -87,7 +87,7 @@ export function AiTutorTeaser() {
           </Reveal>
           <Reveal delayIndex={1}>
             <h2 className="text-[length:var(--text-display-sm)] font-semibold">
-              Stuck at 2AM? Your <GradientText>AI mentor</GradientText> never
+              Stuck at 2 AM? Your <GradientText>AI mentor</GradientText> never
               sleeps.
             </h2>
           </Reveal>

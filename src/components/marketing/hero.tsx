@@ -71,7 +71,7 @@ export function Hero() {
 
         <motion.h1
           variants={item}
-          className="mx-auto mt-7 max-w-4xl text-balance text-[length:var(--text-display-lg)] font-semibold leading-[1.05] tracking-[-0.02em]"
+          className="mx-auto mt-7 max-w-4xl text-balance text-[length:var(--text-display-lg)] font-semibold leading-[1.08] tracking-[-0.005em]"
         >
           Become the software engineer that{" "}
           <AccentWord>companies</AccentWord> want to hire.

@@ -7,7 +7,7 @@ import { Github, Linkedin, Twitter, Youtube, Instagram, ArrowRight } from "lucid
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SITE } from "@/lib/site";
+import { SITE, SOCIALS } from "@/lib/site";
 
 const COLUMNS = [
   {
@@ -36,13 +36,15 @@ const COLUMNS = [
   },
 ];
 
-const SOCIALS = [
-  { label: "YouTube", icon: Youtube, href: "#" },
-  { label: "X / Twitter", icon: Twitter, href: "#" },
-  { label: "LinkedIn", icon: Linkedin, href: "#" },
-  { label: "Instagram", icon: Instagram, href: "#" },
-  { label: "GitHub", icon: Github, href: "#" },
-];
+// Icon + label per network; the URL comes from SOCIALS in src/lib/site.ts.
+// Icons whose URL is empty are hidden (no dead links).
+const SOCIAL_ICONS = [
+  { key: "youtube", label: "YouTube", icon: Youtube },
+  { key: "twitter", label: "X / Twitter", icon: Twitter },
+  { key: "linkedin", label: "LinkedIn", icon: Linkedin },
+  { key: "instagram", label: "Instagram", icon: Instagram },
+  { key: "github", label: "GitHub", icon: Github },
+] as const;
 
 export function Footer() {
   function onSubscribe(e: React.FormEvent<HTMLFormElement>) {
@@ -84,16 +86,22 @@ export function Footer() {
               </Button>
             </form>
             <div className="flex gap-2">
-              {SOCIALS.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  aria-label={s.label}
-                  className="grid size-10 place-items-center rounded-[12px] border border-border bg-bg-elevated text-fg-muted transition-colors hover:border-brand/40 hover:text-brand"
-                >
-                  <s.icon className="size-4.5" />
-                </a>
-              ))}
+              {SOCIAL_ICONS.map((s) => {
+                const href = SOCIALS[s.key];
+                if (!href) return null; // hide icons with no URL yet
+                return (
+                  <a
+                    key={s.key}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="grid size-10 place-items-center rounded-[12px] border border-border bg-bg-elevated text-fg-muted transition-colors hover:border-brand/40 hover:text-brand"
+                  >
+                    <s.icon className="size-4.5" />
+                  </a>
+                );
+              })}
             </div>
           </div>
 

@@ -20,6 +20,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NAME_REGEX } from "@/server/validators";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge, LiveBadge } from "@/components/ui/badge";
@@ -198,6 +199,10 @@ function BasicInfo({
 
   async function save() {
     if (f.firstName.trim().length < 1) return toast.error("First name is required.");
+    if (!NAME_REGEX.test(f.firstName.trim()))
+      return toast.error("First name: use letters, spaces, and . ' - only.");
+    if (f.lastName.trim() && !NAME_REGEX.test(f.lastName.trim()))
+      return toast.error("Last name: use letters, spaces, and . ' - only.");
     setBusy(true);
     const res = await updateBasicInfo({
       firstName: f.firstName,

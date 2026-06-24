@@ -19,6 +19,22 @@ export const NAV_LINKS = [
   { label: "About Us", href: "/about" },
 ] as const;
 
+/**
+ * Social profile URLs. OWNER: paste the real handles below (full https URLs).
+ * Any entry left as an empty string is hidden in the footer — no dead links
+ * are rendered. Keys map 1:1 to the footer icons.
+ */
+export const SOCIALS: Record<
+  "youtube" | "twitter" | "linkedin" | "instagram" | "github",
+  string
+> = {
+  youtube: "", // e.g. "https://youtube.com/@w3codify"
+  twitter: "", // X / Twitter — e.g. "https://x.com/w3codify"
+  linkedin: "", // e.g. "https://linkedin.com/company/w3codify"
+  instagram: "", // e.g. "https://instagram.com/w3codify"
+  github: "", // e.g. "https://github.com/w3codify"
+};
+
 export type Course = {
   slug: string;
   title: string;
