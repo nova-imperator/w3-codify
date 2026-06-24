@@ -5,11 +5,15 @@ import { sendEmailOtp } from "@/server/otp";
 import { isFeatureEnabled } from "@/server/flags";
 import { normalizeEmail, isValidEmail } from "@/lib/otp";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const schema = z.object({ email: z.string().min(3).max(254) });
+const schema = z.object({
+  email: z.string().min(3).max(254),
+  turnstileToken: z.string().max(2048).optional(),
+});
 
 // POST /api/auth/otp/send { email } -> emails a 6-digit OTP (§6.4, §11).
 // Rate-limited per IP and per email; responses are generic (never reveal whether
@@ -23,6 +27,15 @@ export async function POST(req: Request) {
   const email = normalizeEmail(parsed.data.email);
   if (!isValidEmail(email)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+  }
+
+  // Bot protection: verify the Cloudflare Turnstile token before doing any work.
+  // No-op when Turnstile isn't configured (dev/staging).
+  if (!(await verifyTurnstile(parsed.data.turnstileToken, clientIp(req)))) {
+    return NextResponse.json(
+      { error: "Verification failed. Please retry the challenge." },
+      { status: 403 },
+    );
   }
 
   // Abuse guards: per-IP (broad) + per-email (narrow).

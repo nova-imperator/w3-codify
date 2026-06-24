@@ -86,6 +86,10 @@ function otpHtml(code: string): string {
             </div>
           </td></tr>
           <tr><td style="padding:0 32px 28px;">
+            <p style="margin:0 0 8px;font-size:12px;line-height:20px;color:#7a80a8;">
+              You're receiving this because this email address was entered to sign in at
+              <a href="https://w3codify.com" style="color:#8b7dff;text-decoration:none;">w3codify.com</a>.
+            </p>
             <p style="margin:0;font-size:12px;line-height:20px;color:#7a80a8;">
               Didn't try to sign in? You can safely ignore this email — no account changes were made.
             </p>

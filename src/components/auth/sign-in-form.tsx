@@ -13,6 +13,7 @@ import { OtpInput } from "./otp-input";
 import { OrDivider } from "./auth-shell";
 import { GoogleButton } from "./google-button";
 import { DevCodeNotice } from "./dev-code-notice";
+import { TurnstileWidget, isTurnstileEnabled } from "./turnstile-widget";
 import { getOnboardingStatus, completeOnboarding } from "@/server/onboarding";
 import { track } from "@/lib/analytics";
 
@@ -37,6 +38,12 @@ export function SignInForm({
   const [error, setError] = React.useState<string | null>(null);
   const [devCode, setDevCode] = React.useState<string | null>(null);
   const [cooldown, setCooldown] = React.useState(0);
+
+  // Turnstile (bot protection). Token is single-use; bump the nonce to remount
+  // the widget for a fresh token after each send.
+  const captchaOn = isTurnstileEnabled();
+  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null);
+  const [captchaNonce, setCaptchaNonce] = React.useState(0);
 
   // onboarding fields
   const [name, setName] = React.useState("");
@@ -66,7 +73,7 @@ export function SignInForm({
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), turnstileToken: captchaToken }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -83,6 +90,11 @@ export function SignInForm({
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+      // The token was consumed by the server; get a fresh one for any retry/resend.
+      if (captchaOn) {
+        setCaptchaToken(null);
+        setCaptchaNonce((n) => n + 1);
+      }
     }
   }
 
@@ -205,9 +217,17 @@ export function SignInForm({
           {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck className="size-4" />}
           Verify &amp; continue
         </Button>
+        {captchaOn && cooldown <= 0 && (
+          <TurnstileWidget
+            key={`otp-${captchaNonce}`}
+            onVerify={setCaptchaToken}
+            onExpire={() => setCaptchaToken(null)}
+            onError={() => setCaptchaToken(null)}
+          />
+        )}
         <button
           onClick={() => sendCode()}
-          disabled={cooldown > 0 || loading}
+          disabled={cooldown > 0 || loading || (captchaOn && !captchaToken)}
           className="text-sm text-fg-muted hover:text-fg disabled:opacity-50"
         >
           {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
@@ -239,7 +259,15 @@ export function SignInForm({
           </div>
           {error && <p className="text-sm text-[#fb7185]" role="alert">{error}</p>}
         </div>
-        <Button type="submit" size="lg" disabled={loading}>
+        {captchaOn && (
+          <TurnstileWidget
+            key={captchaNonce}
+            onVerify={setCaptchaToken}
+            onExpire={() => setCaptchaToken(null)}
+            onError={() => setCaptchaToken(null)}
+          />
+        )}
+        <Button type="submit" size="lg" disabled={loading || (captchaOn && !captchaToken)}>
           {loading ? <Loader2 className="animate-spin" /> : <ArrowRight className="size-4" />}
           Continue
         </Button>
