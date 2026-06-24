@@ -12,7 +12,9 @@ export const dynamic = "force-dynamic";
 
 const schema = z.object({
   email: z.string().min(3).max(254),
-  turnstileToken: z.string().max(2048).optional(),
+  // nullish: the client sends `null` when Turnstile is disabled (and `undefined`
+  // when omitted) — accept both so a missing captcha never 400s a valid email.
+  turnstileToken: z.string().max(2048).nullish(),
 });
 
 // POST /api/auth/otp/send { email } -> emails a 6-digit OTP (§6.4, §11).
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
 
   // Bot protection: verify the Cloudflare Turnstile token before doing any work.
   // No-op when Turnstile isn't configured (dev/staging).
-  if (!(await verifyTurnstile(parsed.data.turnstileToken, clientIp(req)))) {
+  if (!(await verifyTurnstile(parsed.data.turnstileToken ?? undefined, clientIp(req)))) {
     return NextResponse.json(
       { error: "Verification failed. Please retry the challenge." },
       { status: 403 },
